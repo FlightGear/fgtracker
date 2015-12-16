@@ -10,7 +10,7 @@ class fgt_msg_process
 		$this->uuid=$uuid;
 		
 		/*Get opening flights*/
-		$sql="select flights.id,callsign, count(*) as cnt from flights join waypoints on waypoints.flight_id=flights.id where status='OPEN' AND (server='".$clients[$this->uuid]['server_ident'] ."' or server is NULL) group by flights.id, callsign";
+		$sql="select flights.id,callsign, count(waypoints.flight_id) as cnt from flights left join waypoints on waypoints.flight_id=flights.id where status='OPEN' AND (server='".$clients[$this->uuid]['server_ident'] ."' or server is NULL) group by flights.id, callsign";
 		$res=pg_query($fgt_sql->conn,$sql);
 		if ($res===false or $res==NULL)
 		{
