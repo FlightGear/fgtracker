@@ -78,7 +78,7 @@ class fgt_ident
 			if(!filter_var($data[2], FILTER_VALIDATE_IP))
 			{	/*FGTracker only accepts client self declare his domain name*/
 				$clientdn=pg_escape_string ($fgt_sql->conn, $data[2]);
-				$sql="select name from fms_servers where key='$protocal_version' and ip='$clientdn' and enabled = 'Y' ORDER BY ip";
+				$sql="select name from fgms_servers where key='$protocal_version' and ip='$clientdn' and enabled = 'Y' ORDER BY ip";
 				$res=pg_query($fgt_sql->conn,$sql);
 				if ($res===false or $res==NULL)
 				{
