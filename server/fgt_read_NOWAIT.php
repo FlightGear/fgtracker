@@ -59,6 +59,10 @@ class fgt_read_NOWAIT
 			{
 				$message="PONG received";
 				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ALL);
+			}else if($data[2]!="test")
+			{
+				$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
+				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 			}else if($data[0]=="POSITION")
 			{
 				$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'lat'=>$data[3],'lon'=>$data[4],'alt'=>$data[5],'date'=>$data[6],'time'=>$data[7]);
