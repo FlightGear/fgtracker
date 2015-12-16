@@ -10,7 +10,7 @@ class fgt_msg_process
 		$this->uuid=$uuid;
 		
 		/*Get opening flights*/
-		$sql="select flights.id,callsign, count(waypoints.flight_id) as cnt from flights left join waypoints on waypoints.flight_id=flights.id where status='OPEN' AND (server='".$clients[$this->uuid]['server_ident'] ."' or server is NULL) group by flights.id, callsign";
+		$sql="select flights.id,callsign,start_time, count(waypoints.flight_id) as cnt from flights left join waypoints on waypoints.flight_id=flights.id where status='OPEN' AND (server='".$clients[$this->uuid]['server_ident'] ."' or server is NULL) group by flights.id, callsign, start_time order by callsign, start_time";
 		$res=pg_query($fgt_sql->conn,$sql);
 		if ($res===false or $res==NULL)
 		{
@@ -104,6 +104,7 @@ class fgt_msg_process
 			return false;
 		}
 
+		/*process message*/
 		switch ($msg_array['nature'])
 		{
 			case "POSITION":
@@ -117,13 +118,13 @@ class fgt_msg_process
 				if(intval($msg_array['alt'])<-9000)
 				{
 					$message="$err_prefix Invalid altitude (".$msg_array['alt'].")";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_NOTICE);
+					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 					break;
 				}
 				if(intval($msg_array['alt'])==0 and intval($msg_array['lat'])==0 and intval($msg_array['lon'])==0)
 				{
 					$message="$err_prefix Invalid position (".$msg_array['lat'].", ".$msg_array['lon'].", ".$msg_array['alt'].")";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_NOTICE);
+					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 					break;
 				}
 				$timestamp=$msg_array['date']." ".$msg_array['time']." Z";
@@ -164,7 +165,7 @@ class fgt_msg_process
 				$message="First phase pass on callsign ".$msg_array['callsign']." (Previous flight id: $p_flightid). Conduct second phase check";
 				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ALL);
 				$sql_parm=Array($flightid,$p_flightid);
-				$sql='(select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$1 order by time desc) UNION all (select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$2 order by time desc limit 2)';						
+				$sql='(select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$1 order by time desc) UNION all (select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$2 order by time desc offset 1 limit 2)';						
 				$res=$this->fgt_pg_query_params($sql,$sql_parm);
 				if ($res===false or $res==NULL)
 					return false;
@@ -280,7 +281,7 @@ class fgt_msg_process
 				pg_free_result($res);
 				
 				$message="Welcome callsign \"".$msg_array['callsign']."\" with flight id ".$this->open_flight_array[$msg_array['callsign']]['id'];
-				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
+				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_NOTICE);
 			break;
 			case "DISCONNECT":
 				$err_prefix="Could not DISCONNECT for callsign \"".$msg_array['callsign']."\" from ".$clients[$this->uuid]['server_ident'].".";

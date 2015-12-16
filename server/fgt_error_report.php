@@ -36,6 +36,10 @@ class fgt_error_report
 				if($var['error_reporting_level']==E_NOTICE or $var['error_reporting_level']==E_ALL)
 					$to_log=TRUE;
 			break;
+			case E_ALL:
+				if($var['error_reporting_level']==E_ALL)
+					$to_log=TRUE;
+			break;
 			default:
 				$to_log=TRUE;
 		}

@@ -23,7 +23,7 @@ class fgt_read_V20151207
 			if($i==20)
 			{
 				$message="Buffer read stuck in ".$clients[$this->uuid]['server_ident'] ." too long, moving to another server";
-				$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_NOTICE);
+				$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_WARNING);
 				break;
 			}
 			
@@ -36,8 +36,10 @@ class fgt_read_V20151207
 			$packets=explode("\0", $clients[$this->uuid]['read_buffer'],2);
 			$packet=$packets[0];
 			$clients[$this->uuid]['read_buffer']=$packets[1];
-			$message=" RECV: $packet \\\\EOP";
-			$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_ALL);
+			if ($var['error_reporting_level'] == E_ALL)
+				$message="Received packet: $packet \\\\EOP";
+			else $message="Received packet";
+			$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_NOTICE);
 			if($packet=="PONG")
 			{
 				$message="PONG received";

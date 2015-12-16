@@ -14,7 +14,7 @@ See README.txt for more information
 
 /*variable setup*/
 $var['port'] = 8000; /*Port to bind*/
-$var['error_reporting_level'] = E_ALL; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_ALL*/
+$var['error_reporting_level'] = E_NOTICE; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
 
 /*Postgresql information*/
 $var['postgre_conn']['host'] = ""; /*(Linux only: empty sting for using unix socket*/
@@ -108,7 +108,15 @@ while (1)
 			$clients[$uuid]['timeout_stage']=0;
 			if($client['identified']===false)
 				$fgt_ident->check_ident($uuid);
-			else $clients[$uuid]['read_class']->read_buffer();
+			else 
+			{
+				/*update last_comm*/
+				$sql_parm=Array($clients[$uuid]['server_ident'],$clients[$uuid]['protocal_version']);
+				$sql="UPDATE fgms_servers SET last_comm=now() WHERE name =$1 and key=$2;";
+				pg_query_params($sql,$sql_parm);
+				$clients[$uuid]['read_class']->read_buffer();
+			}
+			
 		}
 		
 		/*check timeout*/
