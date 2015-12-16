@@ -1,6 +1,6 @@
 <?php
 /*
-FGTracker server Version 2.0a
+FGTracker server Version 2.0
 
 Author								: Hazuki Amamiya <FlightGear forum nick Hazuki>
 License								: GPL Version 3
@@ -33,7 +33,7 @@ require("fgt_error_report.php");
 $fgt_error_report=new fgt_error_report();
 
 $var['os'] = strtoupper(PHP_OS);
-$var['fgt_ver']="2.0a";
+$var['fgt_ver']="2.0";
 $var['min_php_ver']='5.1';
 $var['exitflag']=false;
 $var['ping_interval']=60;/*check timeout interval. Default(=60)*/
