@@ -76,7 +76,7 @@ class fgt_read_V20151207
 					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 				}else if($data[0]=="POSITION")
 				{
-					$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'lat'=>$data[3],'lon'=>$data[4],'alt'=>$data[5],'date'=>$data[9],'time'=>$data[10]);
+					$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'lat'=>$data[3],'lon'=>$data[4],'alt'=>$data[5],'heading'=>$data[6],'pitch'=>$data[7],'roll'=>$data[8],'date'=>$data[9],'time'=>$data[10]);
 					$clients[$this->uuid]['msg_process_class']->msg_process($msg_array,$this->uuid);
 				}else if($data[0]=="CONNECT" or $data[0]=="DISCONNECT")
 				{

@@ -129,8 +129,10 @@ class fgt_msg_process
 				}
 				$timestamp=$msg_array['date']." ".$msg_array['time']." Z";
 				/*TODO: Use UPSERT once PostgreSQL 9.5 is available*/
-				$sql_parm=Array($this->open_flight_array[$msg_array['callsign']]['id'],$timestamp,$msg_array['lat'],$msg_array['lon'],$msg_array['alt']);
-				$sql="INSERT INTO waypoints(flight_id,time,latitude,longitude,altitude)VALUES ($1,$2,$3,$4,$5);";
+				if(!isset($msg_array['heading']))
+					$msg_array['heading']=null;
+				$sql_parm=Array($this->open_flight_array[$msg_array['callsign']]['id'],$timestamp,$msg_array['lat'],$msg_array['lon'],$msg_array['alt'],$msg_array['heading']);
+				$sql="INSERT INTO waypoints(flight_id,time,latitude,longitude,altitude,heading)VALUES ($1,$2,$3,$4,$5,$6);";
 				
 				$res=$this->fgt_pg_query_params($sql,$sql_parm);
 				if ($res===false or $res==NULL)

@@ -742,11 +742,12 @@ ALTER TABLE public.users OWNER TO fgtracker;
 
 CREATE TABLE waypoints (
     id integer NOT NULL,
-    flight_id integer,
-    "time" timestamp with time zone,
-    latitude double precision,
-    longitude double precision,
-    altitude double precision
+    flight_id integer NOT NULL,
+    "time" timestamp with time zone NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
+    altitude double precision NOT NULL,
+    heading double precision
 );
 
 
@@ -758,11 +759,12 @@ ALTER TABLE public.waypoints OWNER TO fgtracker;
 
 CREATE TABLE waypoints_archive (
     id integer NOT NULL,
-    flight_id integer,
-    "time" timestamp with time zone,
-    latitude double precision,
-    longitude double precision,
-    altitude double precision
+    flight_id integer NOT NULL,
+    "time" timestamp with time zone NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
+    altitude double precision NOT NULL,
+    heading double precision
 );
 
 
@@ -773,8 +775,23 @@ ALTER TABLE public.waypoints_archive OWNER TO fgtracker;
 --
 
 CREATE VIEW waypoints_all AS
-    SELECT waypoints.id, waypoints.flight_id, waypoints."time", waypoints.latitude, waypoints.longitude, waypoints.altitude FROM waypoints UNION ALL SELECT waypoints_archive.id, waypoints_archive.flight_id, waypoints_archive."time", waypoints_archive.latitude, waypoints_archive.longitude, waypoints_archive.altitude FROM waypoints_archive;
-
+ SELECT waypoints.id,
+    waypoints.flight_id,
+    waypoints."time",
+    waypoints.latitude,
+    waypoints.longitude,
+    waypoints.altitude,
+    waypoints.heading
+   FROM waypoints
+UNION ALL
+ SELECT waypoints_archive.id,
+    waypoints_archive.flight_id,
+    waypoints_archive."time",
+    waypoints_archive.latitude,
+    waypoints_archive.longitude,
+    waypoints_archive.altitude,
+    waypoints_archive.heading
+   FROM waypoints_archive;
 
 ALTER TABLE public.waypoints_all OWNER TO fgtracker;
 
