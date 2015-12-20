@@ -234,8 +234,8 @@ class fgt_msg_process
 				$sql4="delete from flights where id=$1;";
 				pg_query_params($fgt_sql->conn,$sql4,$sql_parm);
 				
-				$sql_parm=Array($clients[$this->uuid]['server_ident'],$msg_array['callsign']);
-				$sql5="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, 'flights', 'FGTracker auto merge flight $flightid to $p_flightid', NOW(), $2,NULL,$p_flightid,$flightid);";
+				$sql_parm=Array("FGTracker",$msg_array['callsign'],$clients[$this->uuid]['server_ident']);
+				$sql5="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, 'flights', 'FGTracker auto merge flight $flightid to $p_flightid', NOW(), $2,$3,$p_flightid,$flightid);";
 				pg_query_params($fgt_sql->conn,$sql5,$sql_parm);
 				
 				$this->open_flight_array[$msg_array['callsign']]['id']=$p_flightid;

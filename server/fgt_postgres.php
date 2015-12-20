@@ -73,7 +73,8 @@ class fgt_postgres{
 		pg_free_result($res);
 		$this->connected=true;
 		$this->conn=$conn1;
-		$fgt_conn=new fgt_connection_mgr();
+		if (class_exists("fgt_connection_mgr"))
+			$fgt_conn=new fgt_connection_mgr(); /*use in server only*/
 		return true;
 	}
 	/*Not necessary to be called as connection is non-presistent

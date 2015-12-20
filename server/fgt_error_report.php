@@ -6,8 +6,9 @@ class fgt_error_report
 	
 	function  __construct ()
 	{
+		global $var;
 		print $this->make_date_str()."Initializing Error reporting Manager\n";
-		$this->handle_core = fopen(dirname(__FILE__)."/log.txt", "a+");
+		$this->handle_core = fopen($var['log_location']."/log.txt", "a+");
 		if ($this->handle_core===false)
 		{
 			print $this->make_date_str()."Failed to Initialize Error reporting Manager. Exiting...\n";

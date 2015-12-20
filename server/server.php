@@ -15,6 +15,7 @@ See README.txt for more information
 /*variable setup*/
 $var['port'] = 8000; /*Port to bind*/
 $var['error_reporting_level'] = E_NOTICE; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
+$var['log_location']=dirname(__FILE__);
 
 /*Postgresql information*/
 $var['postgre_conn']['host'] = ""; /*(Linux only: empty sting for using unix socket*/
