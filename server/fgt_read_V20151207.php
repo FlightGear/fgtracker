@@ -77,7 +77,7 @@ class fgt_read_V20151207
 					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 				}else if($data[0]=="POSITION")
 				{
-					if(sizeof($data)!=11)
+					if(sizeof($data)!=11 or is_numeric($data[3])===false or is_numeric($data[4])===false or is_numeric($data[5])===false or is_numeric($data[6])===false or strpos($data[9] ,"-")!= 4)
 					{
 						$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
 						$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);						
@@ -88,7 +88,7 @@ class fgt_read_V20151207
 					}
 
 
-				}else if($data[0]=="CONNECT" or $data[0]=="DISCONNECT")
+				}else if($data[0]=="CONNECT" or $data[0]=="DISCONNECT" or strpos($data[4] ,"-")!= 4)
 				{
 					if(sizeof($data)!=6)
 					{
@@ -101,15 +101,22 @@ class fgt_read_V20151207
 					}
 				}else
 				{
-					$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Setting close connection flag";
+					$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
 					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
-					$clients[$this->uuid]['write_buffer'].="Failed : Message not recognized\0";
-					$clients[$this->uuid]['connected']=false;
+					//$clients[$this->uuid]['write_buffer'].="Failed : Message not recognized\0";
+					//$clients[$this->uuid]['connected']=false;
 				}
 				if($clients[$this->uuid]['connected']===false or $fgt_sql->connected===false)
-					return false;
+					break;
 				$i++;
 			}
+			
+			if($clients[$this->uuid]['connected']===false and $fgt_sql->connected!==false)
+			{/*roll back and return*/
+				$clients[$this->uuid]['msg_process_class']->rollback();
+				return;
+			}
+				
 			if($clients[$this->uuid]['msg_process_class']->msg_end($packet)===false)
 				return;
 			$clients[$this->uuid]['write_buffer'].="OK\0";

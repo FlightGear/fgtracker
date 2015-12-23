@@ -81,7 +81,7 @@ class fgt_read_NOWAIT
 				$clients[$this->uuid]['write_buffer'].="Failed : Message not recognized\0";
 				$clients[$this->uuid]['connected']=false;
 			}
-			if($clients[$this->uuid]['msg_process_class']->msg_end()===false)
+			if($clients[$this->uuid]['msg_process_class']->msg_end($lines)===false)
 				return false;
 			if($clients[$this->uuid]['connected']===false or $fgt_sql->connected===false)
 				return false;

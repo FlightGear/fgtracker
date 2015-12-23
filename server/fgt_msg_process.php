@@ -345,11 +345,17 @@ class fgt_msg_process
 			$sql_parm=Array("FGTracker",$email_title,$email_content);
 			$sql="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, NULL, $2, NOW(), NULL,$3,NULL,NULL);";
 			pg_query_params($fgt_sql->conn,$sql,$sql_parm);
-			exit();
 			return false;
 		}
 		$fgt_sql->inTransaction=false;
 		return true;
 	}
+	
+	function rollback()
+	{
+		pg_query_params($fgt_sql->conn,"rollback;",Array());
+		$fgt_sql->inTransaction=false;
+	}
+	
 }
 ?>
