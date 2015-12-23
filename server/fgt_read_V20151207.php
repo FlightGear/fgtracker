@@ -3,6 +3,7 @@ class fgt_read_V20151207
 {
 	var $uuid;
 	var $protocal_version;
+	
 	function fgt_read_V20151207($uuid)
 	{
 		global $fgt_error_report,$var,$clients;
@@ -76,12 +77,28 @@ class fgt_read_V20151207
 					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 				}else if($data[0]=="POSITION")
 				{
-					$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'lat'=>$data[3],'lon'=>$data[4],'alt'=>$data[5],'heading'=>$data[6],'pitch'=>$data[7],'roll'=>$data[8],'date'=>$data[9],'time'=>$data[10]);
-					$clients[$this->uuid]['msg_process_class']->msg_process($msg_array,$this->uuid);
+					if(sizeof($data)!=11)
+					{
+						$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
+						$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);						
+					}else
+					{
+						$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'lat'=>$data[3],'lon'=>$data[4],'alt'=>$data[5],'heading'=>$data[6],'pitch'=>$data[7],'roll'=>$data[8],'date'=>$data[9],'time'=>$data[10]);
+						$clients[$this->uuid]['msg_process_class']->msg_process($msg_array,$this->uuid);
+					}
+
+
 				}else if($data[0]=="CONNECT" or $data[0]=="DISCONNECT")
 				{
-					$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'model'=>$data[3],'date'=>$data[4],'time'=>$data[5]);
-					$clients[$this->uuid]['msg_process_class']->msg_process($msg_array,$this->uuid);
+					if(sizeof($data)!=6)
+					{
+						$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
+						$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);						
+					}else
+					{
+						$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'model'=>$data[3],'date'=>$data[4],'time'=>$data[5]);
+						$clients[$this->uuid]['msg_process_class']->msg_process($msg_array,$this->uuid);
+					}
 				}else
 				{
 					$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Setting close connection flag";
@@ -93,7 +110,7 @@ class fgt_read_V20151207
 					return false;
 				$i++;
 			}
-			if($clients[$this->uuid]['msg_process_class']->msg_end()===false)
+			if($clients[$this->uuid]['msg_process_class']->msg_end($packet)===false)
 				return;
 			$clients[$this->uuid]['write_buffer'].="OK\0";
 		}

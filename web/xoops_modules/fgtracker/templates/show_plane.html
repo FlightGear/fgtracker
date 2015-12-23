@@ -1,0 +1,21 @@
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyB_XARtAkZfv8AIOVProEKilytISia5sGM&&sensor=false" type="text/javascript"></script>
+
+<CENTER>
+<{section name=k loop=$topmsg}>
+<{$topmsg[k]}>
+<{/section}>
+<H1>Plane details</H1>
+<{if $icao!=null}>
+<div style="float: left;">
+	 <iframe height="400px" width="400px" src="http://mpserver15.flightgear.org/"></iframe>
+</div>
+
+<div style="float: right; width: 350px;">
+	<table border="1">
+	</table>
+	<table border="1" width="350">
+	</table>
+</div>
+<{else}>
+No Plane information can be displayed.
+<{/if}>

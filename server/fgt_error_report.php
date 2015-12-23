@@ -15,9 +15,9 @@ class fgt_error_report
 			exit();
 		}
 		$message="Error reporting Manager initialized";
-		$this->fgt_set_error_report("CORE",$message,E_WARNING);
+		$this->fgt_set_error_report("ERR_R",$message,E_WARNING);
 		$message="Log location:".dirname(__FILE__);
-		$this->fgt_set_error_report("CORE",$message,E_ALL);		
+		$this->fgt_set_error_report("ERR_R",$message,E_ALL);		
 	}
 	
 	function fgt_set_error_report($loc,$message,$level)
@@ -65,9 +65,22 @@ class fgt_error_report
 	function terminate()
 	{
 		$message="Terminating reporting Manager";
-		$this->fgt_set_error_report("CORE",$message,E_WARNING);
+		$this->fgt_set_error_report("ERR_R",$message,E_WARNING);
 		fclose($this->handle_core);
 		print "Error reporting Manager is terminated\n";
+	}
+
+	function send_email($title,$content)
+	{
+		global $var;
+		
+		$result=mail ( $var['error_email_address'] , $title , $content);
+		if ($result)
+		$message="A Email has been sent to ".$var['error_email_address'];
+		else
+			$message="Failed to send Email to ".$var['error_email_address'];
+		$this->fgt_set_error_report("ERR_R",$message,E_ERROR);
+		
 	}
 }
 

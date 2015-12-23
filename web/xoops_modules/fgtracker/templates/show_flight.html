@@ -1,0 +1,156 @@
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyB_XARtAkZfv8AIOVProEKilytISia5sGM&&sensor=false" type="text/javascript"></script>
+
+<CENTER>
+<{section name=k loop=$topmsg}>
+<{$topmsg[k]}>
+<{/section}>
+<H1>Flight details</H1>
+
+<{if $no_of_waypoints!=0}>
+<table style="width: 640px;" border="1">
+	<tr><td align="left"><b>Callsign:</b> <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>"><{$callsign}></A></td><td align="left"><b>Type:</b> <{$model}></td></tr>
+	<tr>	<td align="left"><b>Start time:</b> <{$start_time}> 
+		<{if $dep_airport_country!=null}>
+			<img src="icons/country-small/<{$dep_airport_country}>.png"  height="14" />
+		<{else}>
+			<img src="icons/country-small/unk.png"  height="14" />
+		<{/if}>
+		<{if $dep_airport!="----"}>
+				<a href="?FUNCT=AIRPORT&ICAO=<{$dep_airport}>">(<{$dep_airport}> - <{$dep_airport_name}>)</a>
+		<{else}>(<{$dep_airport}> - <{$dep_airport_name}>)
+		<{/if}>
+		</td><td align="left"><b>Duration:</b> <{$duration}></td>
+	</tr>
+	<tr><td align="left"><b>End time:</b> <{$endtime}>
+		<{if $arr_airport_country!=null}>
+			<img src="icons/country-small/<{$arr_airport_country}>.png"  height="14" />
+		<{else}>
+			<img src="icons/country-small/unk.png"  height="14" />
+		<{/if}>
+		<{if $arr_airport!="----"}>
+				<a href="?FUNCT=AIRPORT&ICAO=<{$arr_airport}>">(<{$arr_airport}> - <{$arr_airport_name}>)</a>
+		<{else}>(<{$arr_airport}> - <{$arr_airport_name}>)
+		<{/if}>
+		
+	</td><td align="left"><b>Total distance:</b> <{$distance}></td></tr>
+  <tr><td align="left"><b>Max altitude:</b> <{$maxalt}></td><td align="left"><b>Max ground speed:</b> <{$maxgndspeed}></td></tr>
+  <tr><td align="left"><b>Effective flight time:</b> <{$effectiveFlightTime}></td><td align="left"><!--<b>Max Mach:</b> <{$maxmach}>--></td></tr>
+</table>
+*Effective flight time: Time the plane's Ground speed faster than <{$minGrdSpdThreshold}> knots.
+  <{if $xoops_isadmin}>
+  <table style="width: 640px;">
+  <th>Delete flight</th><th>Force merge to previous flight</th>
+  <tr>
+	<td>  
+		<form name="delete_flight" action="?FUNCT=FLIGHT&FLIGHTID=<{$flightid}>" method="POST">
+		Token: <input type="text" NAME="token" size="12"/>
+		<select name="usercomments">
+		<option value=""></option>
+		<option value="Multiple wpts at the same time">Multiple wpts</option>
+		<option value="Low Effective flight rate">Low EFR</option>
+		<option value="Pilot request">Pilot request</option>
+		</select>
+		<input type="submit" NAME="submit" VALUE="Delete" />
+		<input type="hidden" NAME="flightid" VALUE="<{$flightid}>" />
+		<input type="hidden" name="action" value="delete_flight" />
+		<input type="hidden" NAME="callsign" VALUE="<{$callsign}>"/>
+		<input type="hidden" NAME="pflightid" VALUE="<{$p_flightid}>">
+		<input type="hidden" NAME="username" VALUE="<{$xoops_uname}>" />
+		</form>
+	</td>
+	 <td>		
+		<form name="merge_flight" action="?FUNCT=FLIGHT&FLIGHTID=<{$p_flightid}>" method="POST">
+		Token: <input type="text" NAME="token" size="12"/>
+		<select name="usercomments">
+			<option value=""></option>
+			<option value="Force merging">Force</option>
+			<option value="Pilot request">Pilot request</option>
+		<input type="submit" NAME="submit" VALUE="Merge">
+		<input type="hidden" NAME="action" VALUE="merge_flight">
+		<input type="hidden" NAME="nflightid" VALUE="<{$flightid}>">
+		 <input type="hidden" NAME="username" VALUE="<{$xoops_uname}>" />
+		</form>
+	</td>
+  </tr>
+  </table>
+
+  <{else}>
+  <{/if}>
+<br />
+<h1>Previous flight details</h1>
+<table STYLE="width: 640px;" border="1">
+  <tr>
+	<td colspan="2"><b><a href="?FUNCT=FLIGHT&FLIGHTID=<{$p_flightid}>">Previous flight</a></b> 
+	<{if $mergeok=="Y"}>
+	  <form name="merge_flight" action="?FUNCT=FLIGHT&FLIGHTID=<{$p_flightid}>" method="POST">
+	  <input type="submit" NAME="submit" VALUE="Merge previous flight session with this session">
+	  <input type="hidden" NAME="action" VALUE="merge_flight">
+	  <input type="hidden" NAME="nflightid" VALUE="<{$flightid}>">
+	  <input type="hidden" name="usercomments" VALUE="Via Web Interface">
+	  </form>
+	<{/if}>
+	</td>
+  </tr>
+  <tr>
+	<td><b>Type:</b> <{$p_model}> <{if $p_model==$model}>(OK)<{/if}></td>
+	<td><b>Previous Arrival - current departure distance:</b><{$p_distancediff}>M <{if $p_distancediff<33333}>(OK)<{/if}></td>
+  </tr>
+  <tr>
+	<td><b>Start time:</b><{$p_starttime}> </td>
+	<td><b>End time:</b><{$p_endtime}> <{if $starttime_raw-$p_endtime_raw<90}>(OK)<{/if}></td>
+  </tr>
+</table>
+
+<br />
+<H3>Flight map:</H3>
+<br />
+<div id="map-canvas" style="width: 770px; height: 600px"></div>
+    <script type="text/javascript">
+function initialize() {
+  var mapOptions = {
+    zoom: 5,
+    mapTypeId: google.maps.MapTypeId.ROADMAP
+  }
+
+  var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+
+  var ctaLayer = new google.maps.KmlLayer({
+   url: 'http://mpserver15.flightgear.org/modules/fgtracker/?FUNCT=KML&FLIGHTID=<{$flightid}>'
+  });
+  ctaLayer.setMap(map);
+}
+
+google.maps.event.addDomListener(window, 'load', initialize);
+
+</script>
+Download KML <a href="?FUNCT=KML&FLIGHTID=<{$flightid}>"><img height=16 border=0 src="<{$xoops_url}>/modules/fgtracker/icons/ge32.gif"></a>
+<center>
+<H3>Altitude diagram:</H3>
+<img src="graph.php?FLIGHTID=<{$flightid}>&graphtype=altitude" border=0>
+<H3>Ground speed diagram:</H3>
+<img src="graph.php?FLIGHTID=<{$flightid}>&graphtype=grdspd" border=0>
+</center>
+<{else}>
+This flight has no vaild information to show.
+<{/if}>
+Data alteration log of this flight
+<table>
+	<tr>
+		<th>#</th>
+		<th>Time</th>
+		<th>Action</th>
+		<th>Operating user</th>
+		<th>Extra comments</th>
+	</tr>
+<{assign var=val value=1}>
+<{section name=i loop=$tablea}>
+	<tr>
+		<th><{$val}></th>
+		<td><{$tablea[i].time}></td>
+		<td><{$tablea[i].action}></td>
+		<td><{$tablea[i].operating_user}></td>
+		<td><{$tablea[i].comments}></td>
+	</tr>
+<{assign var=val value=$val+1}>
+<{/section}>
+</table>

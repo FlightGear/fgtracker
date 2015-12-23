@@ -1,0 +1,61 @@
+<script src="http://maps.google.com/maps?file=api&v=3.2&key=ABQIAAAACvwVqYJ3vc9cjaUKNn-suhTEx03WsD3x7oD07A_KLQwoL7xQmxTyVoMph4vO4XK7QUSf0HtrgM1zAw" type="text/javascript"></script>
+
+<CENTER>
+<BR>
+<H3>Flight plan:</H3>
+<BR>
+<div id="map" style="width: 640px; height: 480px"></div>
+
+<script type="text/javascript">
+
+// Creates a marker at the given point with the given number label
+function createMarker(point, text) {
+  var marker = new GMarker(point);
+  GEvent.addListener(marker, "click", function() {
+    marker.openInfoWindowHtml(text);
+  });
+  return marker;
+}
+
+
+var map = new GMap2(document.getElementById("map"));
+map.addControl(new GSmallMapControl());
+map.addControl(new GMapTypeControl());
+map.setCenter(new GLatLng(<{$centerlat}>,<{$centerlon}>), 10);
+
+// Add a polyline with five random points. Sort the points by
+// longitude so that the line does not intersect itself.
+var points = [];
+
+<{section name=i loop=$flightplan}>
+points.push( new GLatLng(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>) );
+
+map.addOverlay(createMarker(new GLatLng(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>), "<{$flightplan[i].name}>"));
+
+<{/section}>
+
+map.addOverlay(new GPolyline(points,"#E000E0",5));
+
+// create the 2 icons
+var dep_icon = new GIcon();
+dep_icon.image = "http://fgfs.i-net.hu/modules/fgtracker/icons/departure.gif";
+dep_icon.iconSize = new GSize(20, 20);
+dep_icon.iconAnchor = new GPoint(9, 20);
+dep_icon.infoWindowAnchor = new GPoint(15, 1);
+
+var arr_icon = new GIcon();
+arr_icon.image = "http://fgfs.i-net.hu/modules/fgtracker/icons/arrival.gif";
+arr_icon.iconSize = new GSize(20, 20);
+arr_icon.iconAnchor = new GPoint(9, 20);
+arr_icon.infoWindowAnchor = new GPoint(15, 1);
+
+// show the icons
+var point_dep = new GLatLng(<{$deplat}>,<{$deplon}>);
+var point_arr = new GLatLng(<{$arrlat}>,<{$arrlon}>);
+map.addOverlay(new GMarker(point_dep, dep_icon));
+map.addOverlay(new GMarker(point_arr, arr_icon));
+
+
+</script>
+
+</CENTER>

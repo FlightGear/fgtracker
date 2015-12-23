@@ -1,0 +1,32 @@
+<CENTER>
+<{section name=k loop=$topmsg}>
+<{$topmsg[k]}>
+<{/section}>
+<TABLE>
+<TR><form action="" method="get">
+	<TD><{if $page > 0 }><A HREF="?FUNCT=RANK&PAGE=<{$page-1}>">&lt;&lt;&lt;</A><{/if}></TD>
+	<TD></TD>
+	<TD colspan="3" align="center">Page <{$page+1}> of <{$pages+1}></TD>
+	<TD align="RIGHT">Go to page<input type="text" name="PAGE" size="3em"/><input type="hidden" name="FUNCT" value="RANK"/><input type="hidden" name="CUSTOM" value="true"/><{if $page < $pages }><A HREF="?FUNCT=RANK&PAGE=<{$page+1}>">&gt;&gt;&gt;<{/if}></A></TD>
+	</form>
+</TR>
+<TR><TH>RANK</TH><TH>CALLSIGN</TH><TH>EFFECTIVE FLIGHT TIME</TH><TH>TOTAL FLIGHT TIME</TH><TH>LAST WEEK</TH><TH>LAST MONTH</TH></TR>
+<{section name=i loop=$ranks}>
+<TR>
+	<TD><{$ranks[i][0]}></TD>
+	<TD><A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$ranks[i][1]}>"><{$ranks[i][1]}></A></TD>
+	<TD><{$ranks[i][5]}></TD>
+	<TD><{$ranks[i][4]}></TD>
+	<TD><{$ranks[i][2]}></TD>
+	<TD><{$ranks[i][3]}></TD>
+</TR>
+<{/section}>
+<TR>
+	<TD><{if $page > 0 }><A HREF="?FUNCT=RANK&PAGE=<{$page-1}>">&lt;&lt;&lt;</A><{/if}></TD>
+	<TD></TD>
+	<TD></TD>
+	<TD></TD>
+	<TD></TD>
+	<TD align="RIGHT"><{if $page < $pages }><A HREF="?FUNCT=RANK&PAGE=<{$page+1}>">&gt;&gt;&gt;<{/if}></A></TD></TR>
+</TABLE>
+</CENTER>

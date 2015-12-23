@@ -250,10 +250,13 @@ class fgt_msg_process
 					if ($res===false or $res==NULL)
 						return false;
 					
-					$close_time=pg_result($res,0,"time");
+					if(pg_num_rows($res)!=1)
+						$close_time=NULL;
+					else
+						$close_time=pg_result($res,0,"time");
 					pg_free_result($res);
 
-					if($close_time=="")
+					if($close_time==NULL)
 					{
 						$sql_parm=Array($this->open_flight_array[$msg_array['callsign']]['id']);
 						$sql="UPDATE flights SET status='CLOSED',end_time=start_time WHERE id=$1;";
@@ -304,21 +307,46 @@ class fgt_msg_process
 		}
 		return true;
 	}
-	function msg_end()
+	function msg_end($packet)
 	{	
-		global $fgt_error_report,$clients,$fgt_sql;
+		global $fgt_error_report,$clients,$fgt_sql,$var;
 		$sql="COMMIT;";
 		$res=$this->fgt_pg_query_params($sql,Array());
 		if ($res===false or $res==NULL)
 		{
 			$phpErr=error_get_last();
-			$message="SQL Commit failed - ".pg_last_error ($fgt_sql->conn);
+			$message_dump=$message="SQL Commit failed - ".pg_last_error ($fgt_sql->conn);
 			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
 			$message="PHP feedback of last error: ".$phpErr['message'];
 			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
+			$message_dump.="\n$message";
 			pg_query_params($fgt_sql->conn,"rollback;",Array());
-			return false;
 			$fgt_sql->inTransaction=false;
+			
+			/*Block this server from reconnecting until problem fixed*/
+			$sql="UPDATE fgms_servers SET enabled=FALSE where name=$1";
+			pg_query_params($fgt_sql->conn,$sql,Array($clients[$this->uuid]['server_ident']));
+			
+			$email_content="[".date('Y-m-d H.i.s')."] During the process of the following packet:
+			===============================================
+			$packet
+			===============================================
+			
+			Error occured and here below is the message dump:
+			$message_dump
+			
+			FGTracker
+			";
+			$email_content=str_replace("\n","\r\n", $email_content);
+			$email_title=$clients[$this->uuid]['server_ident']." is blocked due to SQL Error";
+			if ($var['error_email_send']===true)
+				$fgt_error_report->send_email( $email_title, $email_content);
+			
+			$sql_parm=Array("FGTracker",$email_title,$email_content);
+			$sql="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, NULL, $2, NOW(), NULL,$3,NULL,NULL);";
+			pg_query_params($fgt_sql->conn,$sql,$sql_parm);
+			exit();
+			return false;
 		}
 		$fgt_sql->inTransaction=false;
 		return true;

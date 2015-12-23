@@ -17,6 +17,7 @@ See README.txt for more information
 $var['port'] = 8000; /*Port to bind*/
 $var['error_reporting_level'] = E_ALL; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
 $var['log_location']=dirname(__FILE__);
+$var['fgtracker_xoops_location']="../web/xoops_modules/fgtracker"; /*Define the dependency - FGTracker XOOPS modules here*/
 
 /*Postgresql information*/
 $var['postgre_conn']['host'] = ""; /*(Linux only: empty sting for using unix socket*/
@@ -58,6 +59,8 @@ if(substr($var['os'],0,3) != "WIN")
 
 require("update.php");
 require("../server/fgt_postgres.php");
+require ($var['fgtracker_xoops_location'].'/include/flight_report.php');
+require ($var['fgtracker_xoops_location'].'/include/get_nearest_airport.php');
 
 $update_mgr=new UpdateMgr();
 $fgt_sql=new fgt_postgres();
@@ -66,6 +69,15 @@ while(1)
 {
 	if($var['exitflag']===true)
 		break;
+	$update_mgr->fix_erric_data();
+	
+	if($var['exitflag']===true)
+		break;
+	$update_mgr->updateeffectiveflighttimeandicao();
+	
+	if($var['exitflag']===true)
+		break;
+	$update_mgr->updateranking();
 	
 	$message="Update completed. Going to sleep for ".$var['interval']." seconds";
 	$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);
