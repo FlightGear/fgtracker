@@ -41,6 +41,7 @@ class fgt_read_V20151207
 				$message="Received packet: $packet \\\\EOP";
 			else $message="Received packet";
 			$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_NOTICE);
+			$fgt_error_report->log_client_msg($clients[$this->uuid]['server_ident'], $packet);
 			if($packet=="PONG")
 			{
 				$message="PONG received";

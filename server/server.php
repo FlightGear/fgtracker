@@ -16,6 +16,10 @@ See README.txt for more information
 $var['port'] = 8000; /*Port to bind*/
 $var['error_reporting_level'] = E_NOTICE; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
 $var['log_location']=dirname(__FILE__);
+
+/*Save the received message into a file*/
+$var['log_client_msg']=true;
+
 /*Email to Admin: You must setup mail service first (i.e. PHP can send email via its mail() function)*/
 $var['error_email_send']=false; /*boolen ture/false for the reception of error notification*/
 $var['error_email_address']=""; /*set your email here in order to receive error notification. formatting of this string must comply with RFC 2822. */

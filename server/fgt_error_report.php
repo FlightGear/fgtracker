@@ -2,7 +2,7 @@
 class fgt_error_report 
 {
 	var $handle_core;/*Core log file pointer*/
-	var $handle_access;/*Access log file pointer*/
+	var $handle_client_msg;/*client message log file pointer (Array)*/
 	
 	function  __construct ()
 	{
@@ -17,7 +17,7 @@ class fgt_error_report
 		$message="Error reporting Manager initialized";
 		$this->fgt_set_error_report("ERR_R",$message,E_WARNING);
 		$message="Log location:".dirname(__FILE__);
-		$this->fgt_set_error_report("ERR_R",$message,E_ALL);		
+		$this->fgt_set_error_report("ERR_R",$message,E_ALL);
 	}
 	
 	function fgt_set_error_report($loc,$message,$level)
@@ -57,6 +57,17 @@ class fgt_error_report
 		
 	}
 	
+	function log_client_msg($ident, $message)
+	{
+		global $var;
+		if($var['log_client_msg']===true)
+		{
+			if(!isset($this->handle_client_msg[$ident]))
+				$this->handle_client_msg[$ident] = fopen($var['log_location']."/client_msg_$ident.txt", "a+");
+			fwrite($this->handle_client_msg[$ident],$message."\n");
+		}
+	}
+	
 	function make_date_str()
 	{
 		return "[".date('Y-m-d H.i.s')."]\t";
@@ -66,6 +77,8 @@ class fgt_error_report
 	{
 		$message="Terminating reporting Manager";
 		$this->fgt_set_error_report("ERR_R",$message,E_WARNING);
+		foreach($this->handle_client_msg as $handle)
+			fclose($handle);
 		fclose($this->handle_core);
 		print "Error reporting Manager is terminated\n";
 	}
@@ -81,7 +94,7 @@ class fgt_error_report
 			$message="Failed to send Email to ".$var['error_email_address'];
 		$this->fgt_set_error_report("ERR_R",$message,E_ERROR);
 		
-	}
+	}	
 }
 
 ?>

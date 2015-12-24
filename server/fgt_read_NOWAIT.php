@@ -38,6 +38,7 @@ class fgt_read_NOWAIT
 				$message="Received packet: $line";
 			else $message="Received packet";
 			$fgt_error_report->fgt_set_error_report("R_NOWAIT",$message,E_NOTICE);
+			$fgt_error_report->log_client_msg($clients[$this->uuid]['server_ident'], $line);
 			/*Sometimes the fgms sends invalid packets. Below is a workaround to prevent unnessary forced exit. 
 			Example of Invalid messgae are:
 			POSITION * Bad Client *  0 0 . 2012-12-03 21:03:53
