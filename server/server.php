@@ -144,6 +144,6 @@ while (1)
 }
 // close sockets
 $fgt_conn->close_all_connections();
-$fgt_error_report->terminate();
+$fgt_error_report->terminate(FALSE);
 ?>
 

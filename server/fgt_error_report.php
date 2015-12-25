@@ -3,27 +3,37 @@ class fgt_error_report
 {
 	var $handle_core;/*Core log file pointer*/
 	var $handle_client_msg;/*client message log file pointer (Array)*/
+	var $date_str;
 	
 	function  __construct ()
 	{
-		global $var;
+		global $var;	
+		$this->date_str=date('Y-m-d');
+		
 		print $this->make_date_str()."Initializing Error reporting Manager\n";
-		$this->handle_core = fopen($var['log_location']."/log.txt", "a+");
+		$this->handle_core = fopen($var['log_location']."/FGTrackerlog_".$this->date_str.".txt", "a+");
 		if ($this->handle_core===false)
 		{
-			print $this->make_date_str()."Failed to Initialize Error reporting Manager. Exiting...\n";
-			exit();
+			print $this->make_date_str()."Failed to create log file. (Permission denied?)\n";
 		}
 		$message="Error reporting Manager initialized";
 		$this->fgt_set_error_report("ERR_R",$message,E_WARNING);
-		$message="Log location:".dirname(__FILE__);
+		$message="Log location:".$var['log_location'];
 		$this->fgt_set_error_report("ERR_R",$message,E_ALL);
+	}
+	
+	function check_log_date()
+	{
+		if ($this->date_str!=date('Y-m-d'))/*date changed, close all log file*/
+			$this->terminate(TRUE);
 	}
 	
 	function fgt_set_error_report($loc,$message,$level)
 	{
 		global $var;
 		$to_log=FALSE;
+		
+		$this->check_log_date();
 		switch ($level)
 		{
 			case E_ERROR:
@@ -52,7 +62,8 @@ class fgt_error_report
 			foreach($messageArr as $messageElements)
 				$message.=$this->make_date_str().$loc."\t".$messageElements."\n";
 			print $message;
-			fwrite($this->handle_core,$message);
+			if($this->handle_core!==false)
+				fwrite($this->handle_core,$message);
 		}	
 		
 	}
@@ -60,27 +71,38 @@ class fgt_error_report
 	function log_client_msg($ident, $message)
 	{
 		global $var;
-		if($var['log_client_msg']===true)
+		$this->check_log_date();
+		if($var['log_client_msg']===true and $this->handle_core!==false)
 		{
 			if(!isset($this->handle_client_msg[$ident]))
-				$this->handle_client_msg[$ident] = fopen($var['log_location']."/client_msg_$ident.txt", "a+");
+				$this->handle_client_msg[$ident] = fopen($var['log_location']."/client_msg_$ident"."_".$this->date_str.".txt", "a+");
 			fwrite($this->handle_client_msg[$ident],$message."\n");
 		}
 	}
 	
 	function make_date_str()
 	{
-		return "[".date('Y-m-d H.i.s')."]\t";
+		return "[".date('Y-m-d H:i:s')."]\t";
 	}
 	
-	function terminate()
+	function terminate($restart)
 	{
 		$message="Terminating reporting Manager";
 		$this->fgt_set_error_report("ERR_R",$message,E_WARNING);
-		foreach($this->handle_client_msg as $handle)
-			fclose($handle);
-		fclose($this->handle_core);
+		if(isset($this->handle_client_msg))
+		{
+			foreach($this->handle_client_msg as $handle)
+				fclose($handle);
+			unset($this->handle_client_msg);
+		}
+		if($this->handle_core!==FALSE)
+		{
+			fclose($this->handle_core);
+			unset($this->handle_core);
+		}
 		print "Error reporting Manager is terminated\n";
+		if ($restart)
+			$this->__construct();
 	}
 
 	function send_email($title,$content)
@@ -92,8 +114,7 @@ class fgt_error_report
 		$message="A Email has been sent to ".$var['error_email_address'];
 		else
 			$message="Failed to send Email to ".$var['error_email_address'];
-		$this->fgt_set_error_report("ERR_R",$message,E_ERROR);
-		
+		$this->fgt_set_error_report("ERR_R",$message,E_ERROR);	
 	}	
 }
 
