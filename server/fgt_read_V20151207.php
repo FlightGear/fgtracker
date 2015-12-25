@@ -33,7 +33,7 @@ class fgt_read_V20151207
 			if($packet_pos===false)
 				break;
 		
-			/*obtain one line*/
+			/*obtain one packet*/
 			$packets=explode("\0", $clients[$this->uuid]['read_buffer'],2);
 			$packet=$packets[0];
 			$clients[$this->uuid]['read_buffer']=$packets[1];
@@ -109,7 +109,7 @@ class fgt_read_V20151207
 				}
 				if($clients[$this->uuid]['connected']===false or $fgt_sql->connected===false)
 					break;
-				$i++;
+				
 			}
 			
 			if($clients[$this->uuid]['connected']===false and $fgt_sql->connected!==false)
@@ -121,6 +121,7 @@ class fgt_read_V20151207
 			if($clients[$this->uuid]['msg_process_class']->msg_end($packet)===false)
 				return;
 			$clients[$this->uuid]['write_buffer'].="OK\0";
+			$i++;
 		}
 	}
 }
