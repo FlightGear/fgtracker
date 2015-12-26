@@ -5,7 +5,7 @@ FGTracker server Version 2.1alpha
 Author								: Hazuki Amamiya <FlightGear forum nick Hazuki>
 License								: GPL Version 3
 OS requirement 						: Linux 
-DB requirement						: PostgreSQL v8 or above
+DB requirement						: PostgreSQL v9 or above
 PHP requirement						: PHP 5.1 or above (With php-cli module installed)
 Developed and tested under this env	: Debian 8.2/php 5.6.14+dfsg-0+deb8u1/PostgreSQL 9.4.5-0+deb8u1
 

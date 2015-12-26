@@ -70,6 +70,7 @@ class fgt_postgres{
 		$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);	
 		
 		$res=pg_query($conn1,"SET TIMEZONE TO 'UTC';");
+		$res=pg_query($conn1,"SET application_name = 'FGTracker V".$var['fgt_ver']."';");
 		pg_free_result($res);
 		$this->connected=true;
 		$this->conn=$conn1;
