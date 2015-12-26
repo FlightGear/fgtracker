@@ -25,7 +25,10 @@ class fgt_error_report
 	function check_log_date()
 	{
 		if ($this->date_str!=date('Y-m-d'))/*date changed, close all log file*/
+		{
+			$this->date_str=date('Y-m-d');
 			$this->terminate(TRUE);
+		}
 	}
 	
 	function fgt_set_error_report($loc,$message,$level)
