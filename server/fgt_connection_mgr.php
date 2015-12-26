@@ -123,7 +123,7 @@ class fgt_connection_mgr
 		Return true if success, false if failed
 		*/
 		global $fgt_error_report,$clients;
-		if(socket_recv ( $clients[$uuid]['socket'] , $buft , 2048 , MSG_DONTWAIT )===false)
+		if(socket_recv ( $clients[$uuid]['socket'] , $buft , 1024000 , MSG_DONTWAIT )===false)
 		{
 			if(socket_last_error ($clients[$uuid]['socket'])!=11)
 			{
