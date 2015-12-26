@@ -5,7 +5,7 @@ FGTracker service Version 1.0INCOMPLETE
 Author								: Hazuki Amamiya <FlightGear forum nick Hazuki>
 License								: GPL Version 3
 OS requirement 						: Linux 
-DB requirement						: PostgreSQL v8 or above
+DB requirement						: PostgreSQL v9 or above
 PHP requirement						: PHP 5.1 or above (With php-cli module installed)
 Developed and tested under this env	: Debian 8.2/php 5.6.14+dfsg-0+deb8u1/PostgreSQL 9.4.5-0+deb8u1
 
@@ -18,6 +18,7 @@ $var['port'] = 8000; /*Port to bind*/
 $var['error_reporting_level'] = E_ALL; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
 $var['log_location']=dirname(__FILE__);
 $var['fgtracker_xoops_location']="../web/xoops_modules/fgtracker"; /*Define the dependency - FGTracker XOOPS modules here*/
+$var['archive_date']="2015-12-01"; /*Define Date of flights to be archived*/
 
 /*Postgresql information*/
 $var['postgre_conn']['host'] = ""; /*(Linux only: empty sting for using unix socket*/
@@ -65,6 +66,25 @@ require ($var['fgtracker_xoops_location'].'/include/get_nearest_airport.php');
 $update_mgr=new UpdateMgr();
 $fgt_sql=new fgt_postgres();
 
+if(isset($argv[1]))
+	if ($argv[1]=="archive")
+	{
+		$var['archive_mode']=true;
+		$message=chr(27)."[42mFGTracker Service is in archive mode".chr(27)."[0m";
+		$fgt_error_report->fgt_set_error_report("CORE",$message,E_ERROR);
+	}	
+	else $var['archive_mode']=false;
+else $var['archive_mode']=false;
+
+if ($var['archive_mode']===true)
+{
+	 $line = readline("You must terminate any other instance of FGTracker service. Press Y to continue. Any other key to exit.");
+	 if ($line != "Y" and $line != "y")
+	 {
+		$message="Exiting";
+		$fgt_error_report->fgt_set_error_report("CORE",$message,E_NOTICE); return;
+	 }
+}
 while(1)
 {
 	if($var['exitflag']===true)
@@ -79,6 +99,12 @@ while(1)
 		break;
 	$update_mgr->updateranking();
 	
+	if ($var['archive_mode']===true)
+	{
+		$message="Archive completed";
+		$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);
+		break;
+	}
 	$message="Update completed. Going to sleep for ".$var['interval']." seconds";
 	$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);
 	sleep($var['interval']);
