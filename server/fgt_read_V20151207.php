@@ -51,6 +51,9 @@ class fgt_read_V20151207
 			{
 					$clients[$this->uuid]['write_buffer'].="PONG\0";
 					return;
+			}else if(strpos($packet, "DEBUG")===0)
+			{
+					return;
 			}
 			/*messages other than ping/pong*/
 			$lines=explode("\n",$packet);

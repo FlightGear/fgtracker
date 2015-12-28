@@ -5,6 +5,31 @@ class UpdateMgr
 	public function __construct () 
 	{}
 	
+	public function close_opened_flights()
+	{
+		global $fgt_sql,$fgt_error_report,$var;
+		$message="Closing flights before ".$var['archive_date'];
+		$fgt_error_report->fgt_set_error_report("A_CLOSE",$message,E_WARNING);
+		
+		$sql="update flights set status='CLOSED' where start_time < $1 and status ='OPEN';";
+		$res=$this->fgt_pg_query_params($sql,Array($var['archive_date']));
+		if($res===false)
+			return;
+		$message="Done closing ".pg_affected_rows($res)." flights";
+		$fgt_error_report->fgt_set_error_report("A_CLOSE",$message,E_NOTICE);
+		
+
+		/*fix the close time of closed flights*/
+		$sql="update flights set end_time = (select MAX(time) from waypoints where waypoints.flight_id=flights.id) where start_time < $1 and status ='CLOSED' and end_time is null;";
+		$res=$this->fgt_pg_query_params($sql,Array($var['archive_date']));
+		if($res===false)
+			return;
+		$message="Done updating ".pg_affected_rows($res)." flights' end time";
+		$fgt_error_report->fgt_set_error_report("A_CLOSE",$message,E_NOTICE);
+
+		return true;
+	}
+	
 	function fgt_pg_query_params($sql,$sql_parm)
 	{	/*if $sql_parm = NULL, pg_query is used
 		  if $sql_parm is an array, pg_query_params is used
@@ -58,6 +83,28 @@ class UpdateMgr
 		
 		$message="Finished fixing erric data";
 		$fgt_error_report->fgt_set_error_report("F_ERRIC",$message,E_WARNING);
+	}
+	
+	public function fix_no_waypoint_flights()
+	{
+		global $fgt_sql,$fgt_error_report,$var;
+		
+		$message="Fixing no orphan waypoints and no waypoint flights";
+		$fgt_error_report->fgt_set_error_report("A_ORPHA",$message,E_WARNING);
+		
+		$sql="delete from waypoints where flight_id is null";
+		$res=$this->fgt_pg_query_params($sql,NULL);
+		if($res===false)
+			return;
+		$message=pg_affected_rows($res)." waypoints removed";
+		$fgt_error_report->fgt_set_error_report("A_ORPHA",$message,E_NOTICE);
+		
+		$sql="delete from flights where id not in (select distinct flight_id from waypoints) and status = 'CLOSED'";
+		$res=$this->fgt_pg_query_params($sql,NULL);
+		if($res===false)
+			return;
+		$message=pg_affected_rows($res)." flights removed";
+		$fgt_error_report->fgt_set_error_report("A_ORPHA",$message,E_NOTICE);
 	}
 	
 	public function updateeffectiveflighttimeandicao()

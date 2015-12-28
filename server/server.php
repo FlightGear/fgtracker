@@ -11,28 +11,8 @@ Developed and tested under this env	: Debian 8.2/php 5.6.14+dfsg-0+deb8u1/Postgr
 
 See README.txt for more information
 */
-
-/*variable setup*/
-$var['port'] = 8000; /*Port to bind*/
-$var['error_reporting_level'] = E_NOTICE; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
-$var['log_location']=dirname(__FILE__);
-
-/*Save the received message into a file*/
-$var['log_client_msg']=false;
-
-/*Email to Admin: You must setup mail service first (i.e. PHP can send email via its mail() function)*/
-$var['error_email_send']=false; /*boolen ture/false for the reception of error notification*/
-$var['error_email_address']=""; /*set your email here in order to receive error notification. formatting of this string must comply with RFC 2822. */
-
-/*Postgresql information*/
-$var['postgre_conn']['host'] = ""; /*(Linux only: empty sting for using unix socket*/
-$var['postgre_conn']['port'] = 5432; /*(Linux only: lgnored if using unix socket*/
-$var['postgre_conn']['desc'] = "AC-VSERVER";
-$var['postgre_conn']['uname'] = "fgtracker";
-$var['postgre_conn']['pass'] = "fgtracker";
-$var['postgre_conn']['db'] = "fgtracker";
-
 /*Do not amend below unless in development*/
+require (dirname(__FILE__)."/config.php");
 
 if(!defined('MSG_DONTWAIT')) define('MSG_DONTWAIT', 0x40);
 set_time_limit(0);
@@ -45,6 +25,7 @@ $var['fgt_ver']="2.1alpha";
 $var['min_php_ver']='5.1';
 $var['exitflag']=false;
 $var['ping_interval']=60;/*check timeout interval. Default(=60)*/
+$var['appname']="FGTracker V".$var['fgt_ver'];
 
 $message="FGTracker Version ".$var['fgt_ver']." in ".$var['os']." with PHP ".PHP_VERSION;
 $fgt_error_report->fgt_set_error_report("CORE",$message,E_ERROR);
@@ -72,7 +53,7 @@ require("fgt_connection_mgr.php");
 
 $fgt_ident=new fgt_ident();
 $fgt_conn=NULL; /*to be called by $fgt_sql->connectmaster*/
-$fgt_sql=new fgt_postgres();
+$fgt_sql=new fgt_postgres($var['appname']);
 
 
 $clients=Array();
@@ -98,7 +79,7 @@ while (1)
 	foreach($clients as $uuid=>$client)
 	{
 		/*Check the connection*/
-		if ($fgt_sql->connectmaster()===true)
+		if ($fgt_sql->connectmaster($var['appname'])===true)
 			break;
 		
 		if( $fgt_conn->close_connection($uuid)===true)

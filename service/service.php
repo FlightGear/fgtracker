@@ -13,23 +13,8 @@ DO NOT USE THIS PROGRAM AS THIS PROGRAM IS STILL IN DEVELOPMENT AND INCOMPLETE
 See README.txt for more information
 */
 
-/*variable setup*/
-$var['port'] = 8000; /*Port to bind*/
-$var['error_reporting_level'] = E_ALL; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
-$var['log_location']=dirname(__FILE__);
-$var['fgtracker_xoops_location']="../web/xoops_modules/fgtracker"; /*Define the dependency - FGTracker XOOPS modules here*/
-$var['archive_date']="2015-12-01"; /*Define Date of flights to be archived*/
-
-/*Postgresql information*/
-$var['postgre_conn']['host'] = ""; /*(Linux only: empty sting for using unix socket*/
-$var['postgre_conn']['port'] = 5432; /*(Linux only: lgnored if using unix socket*/
-$var['postgre_conn']['desc'] = "AC-VSERVER";
-$var['postgre_conn']['uname'] = "fgtracker";
-$var['postgre_conn']['pass'] = "fgtracker";
-$var['postgre_conn']['db'] = "fgtracker";
-
 /*Do not amend below unless in development*/
-
+require (dirname(__FILE__)."/config.php");
 set_time_limit(0);
 
 require("../server/fgt_error_report.php");
@@ -40,6 +25,7 @@ $var['fgt_ver']="1.0INCOMPLETE";
 $var['min_php_ver']='5.1';
 $var['exitflag']=false;
 $var['interval']=300;/*Interval. Default 300(seconds)*/
+$var['appname']="FGTracker Service V".$var['fgt_ver'];
 
 $message="FGTracker Service Version ".$var['fgt_ver']." in ".$var['os']." with PHP ".PHP_VERSION;
 $fgt_error_report->fgt_set_error_report("CORE",$message,E_ERROR);
@@ -64,7 +50,7 @@ require ($var['fgtracker_xoops_location'].'/include/flight_report.php');
 require ($var['fgtracker_xoops_location'].'/include/get_nearest_airport.php');
 
 $update_mgr=new UpdateMgr();
-$fgt_sql=new fgt_postgres();
+$fgt_sql=new fgt_postgres($var['appname']);
 
 if(isset($argv[1]))
 	if ($argv[1]=="archive")
@@ -78,13 +64,31 @@ else $var['archive_mode']=false;
 
 if ($var['archive_mode']===true)
 {
-	 $line = readline("You must terminate any other instance of FGTracker service. Press Y to continue. Any other key to exit.");
-	 if ($line != "Y" and $line != "y")
-	 {
+	$line = readline("You must terminate any other instance of FGTracker server and FGTracker service. Press Y to continue. Any other alphabet to exit.");
+	if ($line != "Y" and $line != "y")
+	{
 		$message="Exiting";
 		$fgt_error_report->fgt_set_error_report("CORE",$message,E_NOTICE); return;
-	 }
+	}
+	if($fgt_sql->check_no_of_FGTracker_instance(0)===false)
+	{
+		$message="FGTracker server instance detected...Exiting...";
+		$fgt_error_report->fgt_set_error_report("CORE",$message,E_ERROR); return;
+	}
+	$line = readline("FGTracker service will archive data before ".$var['archive_date'].". Press Y to confirm. Any other alphabet to abort.");
+	if ($line != "Y" and $line != "y")
+	{
+		$message="Exiting";
+		$fgt_error_report->fgt_set_error_report("CORE",$message,E_NOTICE); return;
+	}
 }
+
+if($fgt_sql->check_no_of_FGTracker_service_instance(1)===false)
+{
+	$message="FGTracker service instance detected...Exiting...";
+	$fgt_error_report->fgt_set_error_report("CORE",$message,E_ERROR); return;
+}
+
 while(1)
 {
 	if($var['exitflag']===true)
@@ -101,6 +105,14 @@ while(1)
 	
 	if ($var['archive_mode']===true)
 	{
+		$update_mgr->close_opened_flights();
+		if($var['exitflag']===true)
+			break;
+		
+		$update_mgr->fix_no_waypoint_flights();
+		if($var['exitflag']===true)
+			break;
+		
 		$message="Archive completed";
 		$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);
 		break;

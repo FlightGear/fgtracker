@@ -7,16 +7,16 @@ class fgt_postgres{
 	var $connected;
 	var $inTransaction;
 	
-	public function __construct () 
+	public function __construct ($appname) 
 	{
 		global $var;
 		$this->connected=false;
 		$this->conn=NULL;
-		$this->connectmaster();
-		$this->inTransaction=FALSE;
+		$this->connectmaster($appname);
+		$this->inTransaction=FALSE;	
 	}
 	
-	public function connectmaster()
+	public function connectmaster($appname)
 	{
 		/*connect to PostgreSQL. This function will never return until a SQL connection has been successfully made
 		This function will close all connections with fgms before connecting to Database
@@ -70,13 +70,39 @@ class fgt_postgres{
 		$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);	
 		
 		$res=pg_query($conn1,"SET TIMEZONE TO 'UTC';");
-		$res=pg_query($conn1,"SET application_name = 'FGTracker V".$var['fgt_ver']."';");
+		$res=pg_query($conn1,"SET application_name = '$appname';");
 		pg_free_result($res);
 		$this->connected=true;
 		$this->conn=$conn1;
 		if (class_exists("fgt_connection_mgr"))
 			$fgt_conn=new fgt_connection_mgr(); /*use in server only*/
 		return true;
+	}
+	
+	function check_no_of_FGTracker_instance($max_allowed)
+	{
+		global $var,$fgt_error_report,$fgt_conn;
+		$res=pg_query($this->conn,"SELECT pid, application_name FROM pg_stat_activity where application_name LIKE 'FGTracker V%';");
+		if ($res===false)
+			return false;
+		$nr=pg_num_rows($res);
+		pg_free_result($res);
+		if($nr>$max_allowed)
+			return false;
+		else return true;
+	}
+	
+	function check_no_of_FGTracker_service_instance($max_allowed)
+	{
+		global $var,$fgt_error_report,$fgt_conn;
+		$res=pg_query($this->conn,"SELECT pid, application_name FROM pg_stat_activity where application_name LIKE 'FGTracker Service%';");
+		if ($res===false)
+			return false;
+		$nr=pg_num_rows($res);
+		pg_free_result($res);
+		if($nr>$max_allowed)
+			return false;
+		else return true;
 	}
 	/*Not necessary to be called as connection is non-presistent
 	function __destruct()
