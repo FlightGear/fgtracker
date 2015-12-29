@@ -4,7 +4,7 @@ class fgt_read_V20151207
 	var $uuid;
 	var $protocal_version;
 	
-	function fgt_read_V20151207($uuid)
+	function __construct($uuid)
 	{
 		global $fgt_error_report,$var,$clients;
 		
@@ -12,6 +12,19 @@ class fgt_read_V20151207
 		$this->protocal_version="V20151207";
 		$message="Subroutine \"".$this->protocal_version."\" for ".$clients[$this->uuid]['server_ident'] ." initialized";
 		$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_NOTICE);		
+	}
+	
+	function catch_phase_error($die,$line)
+	{
+		global $fgt_error_report,$var,$clients;
+		
+		$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ." ($line)";
+		$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
+		if($die)
+		{
+			$clients[$this->uuid]['write_buffer'].="ERROR Message \"$line\" not recognized\0";
+			$clients[$this->uuid]['connected']=false;		
+		}
 	}
 	
 	function read_buffer()
@@ -37,9 +50,10 @@ class fgt_read_V20151207
 			$packets=explode("\0", $clients[$this->uuid]['read_buffer'],2);
 			$packet=$packets[0];
 			$clients[$this->uuid]['read_buffer']=$packets[1];
+			$packet_size=strlen($packet)+1;
 			if ($var['error_reporting_level'] == E_ALL)
-				$message="Received packet: $packet \\\\EOP";
-			else $message="Received packet";
+				$message="Received packet ($packet_size bytes): $packet \\\\EOP";
+			else $message="Received packet ($packet_size bytes)";
 			$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_NOTICE);
 			$fgt_error_report->log_client_msg($clients[$this->uuid]['server_ident'], $packet);
 			if($packet=="PONG")
@@ -72,44 +86,29 @@ class fgt_read_V20151207
 				*/
 				$data=explode(" ", $line);
 				if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , ". . ."  )!==false)
-				{
-					$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
-				}else if($data[2]!="test")
-				{
-					$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
-				}else if($data[0]=="POSITION")
+					$this->catch_phase_error(false,$line);
+				else if($data[2]!="test")
+					$this->catch_phase_error(false,$line);
+				else if($data[0]=="POSITION")
 				{
 					if(sizeof($data)!=11 or is_numeric($data[3])===false or is_numeric($data[4])===false or is_numeric($data[5])===false or is_numeric($data[6])===false or strpos($data[9] ,"-")!= 4)
-					{
-						$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
-						$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);						
-					}else
+						$this->catch_phase_error(true,$line);
+					else
 					{
 						$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'lat'=>$data[3],'lon'=>$data[4],'alt'=>$data[5],'heading'=>$data[6],'pitch'=>$data[7],'roll'=>$data[8],'date'=>$data[9],'time'=>$data[10]);
 						$clients[$this->uuid]['msg_process_class']->msg_process($msg_array,$this->uuid);
 					}
-
-
 				}else if($data[0]=="CONNECT" or $data[0]=="DISCONNECT" or strpos($data[4] ,"-")!= 4)
 				{
 					if(sizeof($data)!=6)
-					{
-						$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
-						$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);						
-					}else
+						$this->catch_phase_error(true,$line);
+					else
 					{
 						$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'model'=>$data[3],'date'=>$data[4],'time'=>$data[5]);
 						$clients[$this->uuid]['msg_process_class']->msg_process($msg_array,$this->uuid);
 					}
-				}else
-				{
-					$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
-					//$clients[$this->uuid]['write_buffer'].="Failed : Message not recognized\0";
-					//$clients[$this->uuid]['connected']=false;
-				}
+				}else	$this->catch_phase_error(true,$line);
+
 				if($clients[$this->uuid]['connected']===false or $fgt_sql->connected===false)
 					break;
 				
