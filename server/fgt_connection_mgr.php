@@ -142,8 +142,7 @@ class fgt_connection_mgr
 	
 	function write_connection($uuid)
 	{
-		/*write buffer to connection
-		*/
+		/*write buffer to connection*/
 		global $fgt_error_report,$clients;
 		$i=0;
 		while(strlen ($clients[$uuid]['write_buffer'])!=0)
@@ -157,7 +156,7 @@ class fgt_connection_mgr
 			$i++;	
 			/*check if stuck in write buffer too long. If so break*/
 			$bytes_written=socket_write($clients[$uuid]['socket'], $clients[$uuid]['write_buffer'], strlen ($clients[$uuid]['write_buffer']));
-			$message="Wrote $bytes_written bytes to ".$clients[$uuid]['server_ident'];
+			$message="Wrote $bytes_written bytes to ".$clients[$uuid]['server_ident']."(".str_replace("\0",chr(178),substr($clients[$uuid]['write_buffer'], 0,$bytes_written)).")";
 			$fgt_error_report->fgt_set_error_report("CORE",$message,E_ALL);
 			if($bytes_written===false)
 			{
