@@ -63,11 +63,16 @@ class fgt_read_V20151207
 				return;
 			}else if($packet=="PING")
 			{
-					$clients[$this->uuid]['write_buffer'].="PONG\0";
-					return;
+				$clients[$this->uuid]['write_buffer'].="PONG\0";
+				return;
 			}else if(strpos($packet, "DEBUG")===0)
 			{
-					return;
+				return;
+			}else if(strpos($packet, "ERROR")===0)
+			{
+				$message="Received message from ".$clients[$this->uuid]['server_ident'].": $packet";
+				$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_ERROR);
+				return;
 			}
 			/*messages other than ping/pong*/
 			$lines=explode("\n",$packet);
@@ -83,9 +88,10 @@ class fgt_read_V20151207
 				POSITION * Bad Client *  0 0 . 2012-12-03 21:03:53
 				DISCONNECT * Bad Client *  * unknown * 2012-12-03 20:56:32
 				POSITION franck test  . . . 2012-12-08 14:28:42
+				POSITION edji-x test -15.325710 35.681043 . 313.231018 10.049998 -45.658264 2015-12-31 01:54:54" not recognized
 				*/
 				$data=explode(" ", $line);
-				if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , ". . ."  )!==false)
+				if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , " . "  )!==false)
 					$this->catch_phase_error(false,$line);
 				else if($data[2]!="test")
 					$this->catch_phase_error(false,$line);

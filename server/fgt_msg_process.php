@@ -353,6 +353,7 @@ class fgt_msg_process
 	
 	function rollback()
 	{
+		global $fgt_sql;
 		pg_query_params($fgt_sql->conn,"rollback;",Array());
 		$fgt_sql->inTransaction=false;
 	}

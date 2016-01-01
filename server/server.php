@@ -74,6 +74,7 @@ while (1)
 	*/
 	
 	// accept incoming connections
+	$no_data=true;
 	$fgt_conn->accept_connection();
 	
 	foreach($clients as $uuid=>$client)
@@ -93,6 +94,7 @@ while (1)
 		//print strlen ($clients[$uuid]['read_buffer'])."-";
 		if(strlen ($clients[$uuid]['read_buffer'])>2)
 		{
+			$no_data=false;
 			$clients[$uuid]['last_reception']=time();
 			$clients[$uuid]['timeout_stage']=0;
 			if($client['identified']===false)
@@ -121,7 +123,8 @@ while (1)
 		$fgt_error_report->fgt_set_error_report("CORE",$message,E_NOTICE);
 		break;
 	}
-	usleep(200000);
+	if ($no_data)/*only sleep when no data flown in*/
+		usleep(10000);
 }
 // close sockets
 $fgt_conn->close_all_connections();

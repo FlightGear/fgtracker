@@ -44,8 +44,9 @@ class fgt_read_NOWAIT
 			POSITION * Bad Client *  0 0 . 2012-12-03 21:03:53
 			DISCONNECT * Bad Client *  * unknown * 2012-12-03 20:56:32
 			POSITION franck test  . . . 2012-12-08 14:28:42
+			POSITION edji-x test -15.325710 35.681043 . 313.231018 10.049998 -45.658264 2015-12-31 01:54:54" not recognized
 			*/
-			if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , ". . ."  )!==false)
+			if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , " . "  )!==false)
 			{
 				$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
 				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
