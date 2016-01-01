@@ -1,5 +1,10 @@
 <?php
 
+/* #############################################################
+   Set this to your site hosting this status info... thanks...
+   #############################################################  */
+$host_site = "localhost";
+
 /* Set these variables to match your local fgms instance
 $fgms_path = "/usr/local/sbin/fgms";
 $fgms_conf = "/usr/local/etc/fgms.conf";
@@ -17,21 +22,21 @@ $mpserver_list = array(
 		"port"	=> "5001",
 		"loc"	=> "Frankfurt, Germany",
 		"force_untracked" =>false
-	),/*
+	),
 	"mpserver02" => array(
 		"short"	=> "mpserver02",
 		"long"	=> "mpserver02.flightgear.org",
 		"port"	=> "5001",
 		"loc"	=> "Los Angeles, USA",
 		"force_untracked" =>false
-	),*/
+	),
 	"mpserver03" => array(
 		"short"	=> "mpserver03",
 		"long"	=> "mpserver03.flightgear.org",
 		"port"	=> "5001",
 		"loc"	=> "Germany",
 		"force_untracked" =>false
-	),/*
+	),
 	"mpserver04" => array(
 		"short"	=> "mpserver04",
 		"long"	=> "mpserver04.flightgear.org",
@@ -101,7 +106,7 @@ $mpserver_list = array(
 		"port"	=> "5001",
 		"loc"	=> "Grenoble, France",
 		"force_untracked" =>false
-	),*/
+	),
 	"mpserver14" => array(
 		"short"	=> "mpserver14",
 		"long"	=> "mpserver14.flightgear.org",
@@ -122,7 +127,7 @@ $mpserver_list = array(
 		"port"	=> "5001",
 		"loc"	=> "Kansas City, Missouri, USA ",
 		"force_untracked" =>false
-	)/*,
+	),
 	"mpserver17" => array(
 		"short"	=> "mpserver17",
 		"long"	=> "mpserver17.flightgear.org",
@@ -136,7 +141,7 @@ $mpserver_list = array(
 		"port"	=> "5001",
 		"loc"	=> "Germany",
 		"force_untracked" =>false
-	)*/
+	)
 );
 
 ?>
