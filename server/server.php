@@ -124,7 +124,7 @@ while (1)
 		break;
 	}
 	if ($no_data)/*only sleep when no data flown in*/
-		usleep(10000);
+		usleep(100000);
 }
 // close sockets
 $fgt_conn->close_all_connections();

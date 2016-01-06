@@ -3,21 +3,21 @@ class fgt_read_V20151207
 {
 	var $uuid;
 	var $protocal_version;
-	
+
 	function __construct($uuid)
 	{
 		global $fgt_error_report,$var,$clients;
-		
+
 		$this->uuid=$uuid;
 		$this->protocal_version="V20151207";
 		$message="Subroutine \"".$this->protocal_version."\" for ".$clients[$this->uuid]['server_ident'] ." initialized";
 		$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_NOTICE);		
 	}
-	
+
 	function catch_phase_error($die,$line)
 	{
 		global $fgt_error_report,$var,$clients;
-		
+
 		$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ." ($line)";
 		$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
 		if($die)
@@ -26,7 +26,7 @@ class fgt_read_V20151207
 			$clients[$this->uuid]['connected']=false;		
 		}
 	}
-	
+
 	function read_buffer()
 	{
 		global $fgt_error_report,$var,$clients,$fgt_sql;
@@ -40,12 +40,12 @@ class fgt_read_V20151207
 				$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_WARNING);
 				break;
 			}
-			
+
 			/*check if whole message received*/
 			$packet_pos = strpos($clients[$this->uuid]['read_buffer'], "\0");
 			if($packet_pos===false)
 				break;
-		
+
 			/*obtain one packet*/
 			$packets=explode("\0", $clients[$this->uuid]['read_buffer'],2);
 			$packet=$packets[0];
@@ -117,15 +117,15 @@ class fgt_read_V20151207
 
 				if($clients[$this->uuid]['connected']===false or $fgt_sql->connected===false)
 					break;
-				
+
 			}
-			
+
 			if($clients[$this->uuid]['connected']===false and $fgt_sql->connected!==false)
 			{/*roll back and return*/
 				$clients[$this->uuid]['msg_process_class']->rollback();
 				return;
 			}
-				
+
 			if($clients[$this->uuid]['msg_process_class']->msg_end($packet)===false)
 				return;
 			$clients[$this->uuid]['write_buffer'].="OK\0";

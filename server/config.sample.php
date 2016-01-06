@@ -5,7 +5,7 @@ Rename this file to "config.php" before launching FGTracker server
 /*variable setup*/
 $var['port'] = 8000; /*Port to bind*/
 $var['error_reporting_level'] = E_NOTICE; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
-$var['log_location']=dirname(__FILE__);
+$var['log_location']=dirname(__FILE__); /*without tailing slash*/
 
 /*Save the received message into a file*/
 $var['log_client_msg']=false;

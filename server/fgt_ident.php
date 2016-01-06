@@ -5,9 +5,9 @@ class fgt_ident
 	{
 		global $fgt_error_report;
 		$message="Server Ident Manager initalized";
-		$fgt_error_report->fgt_set_error_report("IDENT",$message,E_NOTICE);		
+		$fgt_error_report->fgt_set_error_report("IDENT",$message,E_NOTICE);
 	}
-	
+
 	function check_ident($uuid)
 	{
 		global $fgt_error_report,$var,$clients,$fgt_sql;
@@ -21,7 +21,7 @@ class fgt_ident
 		$lines=explode("\0", $clients[$uuid]['read_buffer'],2);
 		$line=$lines[0];
 		$clients[$uuid]['read_buffer']=$lines[1];
-		
+
 		/*check if first message (first line from fgms will be ignored)*/
 		if($clients[$uuid]['protocal_version']==null)
 		{
@@ -29,16 +29,16 @@ class fgt_ident
 			return;
 		}
 		socket_getpeername( $clients[$uuid]['socket'] ,$address);
-		
+
 		/*check the version*/
 		$message=" RECV: $line";
 		$fgt_error_report->fgt_set_error_report("IDENT",$message,E_ALL);
 		$data=explode(" ",$line);
-		if ($data[0]=="NOWAIT") 
+		if ($data[0]=="NOWAIT")
 			$protocal_version="NOWAIT";
 		else if ($data[0]=="V20151207")
 			$protocal_version="V20151207";
-			
+
 		$identfailmsg="Client from $address could not be identified. ";
 		$dbfailmessage="Client from $address could not be identified due to DB problem";
 		if($protocal_version=="Unknown")
@@ -49,11 +49,11 @@ class fgt_ident
 			return;
 		}
 		/*check the identity*/
-		$sql="select name from fgms_servers where key='$protocal_version' and ip='$address' and enabled = 'Y'";		
+		$sql="select name from fgms_servers where key='$protocal_version' and ip='$address' and enabled = 'Y'";
 		$res=pg_query($fgt_sql->conn,$sql);
 		if ($res===false or $res==NULL)
 		{
-			
+
 			$fgt_error_report->fgt_set_error_report("IDENT",$dbfailmessage,E_ERROR);
 			$clients[$uuid]['connected']=false;
 			$fgt_sql->connected=false;
@@ -98,20 +98,20 @@ class fgt_ident
 					}
 					$clients[$uuid]['server_ident']=$serv_ident=pg_result($res,0,"name");
 					pg_free_result($res);
-				}else			
+				}else
 				{
 					$fgt_error_report->fgt_set_error_report("IDENT",$identfailmsg.$protocal_version."/".$clientdn,E_WARNING);
 					$clients[$uuid]['connected']=false;
 					return;
 				}
-			}else			
+			}else
 			{
 				$fgt_error_report->fgt_set_error_report("IDENT",$identfailmsg."Invalid domain name supplied",E_WARNING);
 				$clients[$uuid]['connected']=false;
 				return;
 			}
 		}
-		
+
 		$message="Client from $address identified as $serv_ident via protocal version $protocal_version";
 		$fgt_error_report->fgt_set_error_report("IDENT",$message,E_NOTICE);
 		$clients[$uuid]['identified']=true;
