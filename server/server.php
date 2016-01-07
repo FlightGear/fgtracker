@@ -25,6 +25,7 @@ $var['fgt_ver']="2.1alpha";
 $var['min_php_ver']='5.1';
 $var['exitflag']=false;
 $var['ping_interval']=60;/*check timeout interval. Default(=60)*/
+$var['ident_interval']=5;/*check timeout interval for not yet identified connection. Default(=5)*/
 $var['appname']="FGTracker V".$var['fgt_ver'];
 
 $message="FGTracker Version ".$var['fgt_ver']." in ".$var['os']." with PHP ".PHP_VERSION;
@@ -83,31 +84,34 @@ while (1)
 		if ($fgt_sql->connectmaster($var['appname'])===true)
 			break;
 		
-		if( $fgt_conn->close_connection($uuid)===true)
+		if($fgt_conn->close_connection($uuid)===true)
 			continue;
 		
 		/*Read client input*/
-		if( $fgt_conn->read_connection($uuid)===false)
+		$data_len=$fgt_conn->read_connection($uuid);
+		if($data_len===false)
 			continue;
-		
-		/*Process the read buffer (if needed)*/
-		//print strlen ($clients[$uuid]['read_buffer'])."-";
-		if(strlen ($clients[$uuid]['read_buffer'])>2)
+		else if($data_len) /*Process the read buffer (if needed)*/
 		{
-			$no_data=false;
-			$clients[$uuid]['last_reception']=time();
-			$clients[$uuid]['timeout_stage']=0;
+			 $no_data=false;
 			if($client['identified']===false)
-				$fgt_ident->check_ident($uuid);
+			{
+				if($fgt_ident->check_ident($uuid))
+				{
+					$clients[$uuid]['timeout_stage']=0;
+					$clients[$uuid]['last_reception']=time();
+				}
+			}
 			else 
 			{
 				/*update last_comm*/
+				$clients[$uuid]['timeout_stage']=0;
+				$clients[$uuid]['last_reception']=time();
 				$sql_parm=Array($clients[$uuid]['server_ident'],$clients[$uuid]['protocal_version']);
 				$sql="UPDATE fgms_servers SET last_comm=now() WHERE name =$1 and key=$2;";
 				pg_query_params($sql,$sql_parm);
 				$clients[$uuid]['read_class']->read_buffer();
-			}
-			
+			}	
 		}
 		
 		/*check timeout*/

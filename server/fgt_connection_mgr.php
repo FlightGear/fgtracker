@@ -61,10 +61,14 @@ class fgt_connection_mgr
 	{
 		global $fgt_error_report,$clients,$var;
 		
-		if(time()-$clients[$uuid]['last_reception']-$var['ping_interval']*$clients[$uuid]['timeout_stage']>$var['ping_interval'])
+		if($clients[$uuid]['identified']===false)
+			$interval=$var['ident_interval'];
+		else $interval=$var['ping_interval'];
+		
+		if(time()-$clients[$uuid]['last_reception']-$interval*$clients[$uuid]['timeout_stage']>$interval)
 		{
 			$clients[$uuid]['timeout_stage']++;
-			$timeout=($clients[$uuid]['timeout_stage'])*$var['ping_interval'];
+			$timeout=($clients[$uuid]['timeout_stage'])*$interval;
 			if($clients[$uuid]['timeout_stage']>3)
 			{
 				$clients[$uuid]['connected']=false;
@@ -120,7 +124,7 @@ class fgt_connection_mgr
 	function read_connection($uuid)
 	{
 		/*read connection to buffer
-		Return true if success, false if failed
+		Return bytes received on success (0 if no new data), false if failed
 		*/
 		global $fgt_error_report,$clients;
 		if(socket_recv ( $clients[$uuid]['socket'] , $buft , 1024000 , MSG_DONTWAIT )===false)
@@ -132,11 +136,11 @@ class fgt_connection_mgr
 				$clients[$uuid]['connected']=false;
 				return false;
 			}
-			return true;
+			return 0;
 		}else
 		{
 			$clients[$uuid]['read_buffer'].=$buft;
-			return true;
+			return strlen($buft);
 		}
 	}
 	
