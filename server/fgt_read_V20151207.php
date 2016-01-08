@@ -60,19 +60,19 @@ class fgt_read_V20151207
 			{
 				$message="PONG received";
 				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ALL);
-				return;
+				continue;
 			}else if($packet=="PING")
 			{
 				$clients[$this->uuid]['write_buffer'].="PONG\0";
-				return;
+				continue;
 			}else if(strpos($packet, "DEBUG")===0)
 			{
-				return;
+				continue;
 			}else if(strpos($packet, "ERROR")===0)
 			{
 				$message="Received message from ".$clients[$this->uuid]['server_ident'].": $packet";
 				$fgt_error_report->fgt_set_error_report("R_".$this->protocal_version,$message,E_ERROR);
-				return;
+				continue;
 			}
 			/*messages other than ping/pong*/
 			$lines=explode("\n",$packet);
@@ -91,10 +91,12 @@ class fgt_read_V20151207
 				POSITION edji-x test -15.325710 35.681043 . 313.231018 10.049998 -45.658264 2015-12-31 01:54:54" not recognized
 				*/
 				$data=explode(" ", $line);
-				if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , " . "  )!==false)
+				if(mb_check_encoding($line, 'UTF-8')===false)
+					$this->catch_phase_error(false,$line);
+				else if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , " . "  )!==false)
 					$this->catch_phase_error(false,$line);
 				else if($data[2]!="test")
-					$this->catch_phase_error(false,$line);
+					$this->catch_phase_error(false,$line); 
 				else if($data[0]=="POSITION")
 				{
 					if(sizeof($data)!=11 or is_numeric($data[3])===false or is_numeric($data[4])===false or is_numeric($data[5])===false or is_numeric($data[6])===false or strpos($data[9] ,"-")!= 4)

@@ -91,15 +91,17 @@ while (1)
 		$data_len=$fgt_conn->read_connection($uuid);
 		if($data_len===false)
 			continue;
-		else if($data_len) /*Process the read buffer (if needed)*/
+		else if ($data_len)$no_data=false;
+		
+		if(strpos($clients[$uuid]['read_buffer'], "\0")!==false) /*Process the read buffer (if needed)*/
 		{
-			 $no_data=false;
 			if($client['identified']===false)
 			{
 				if($fgt_ident->check_ident($uuid))
 				{
 					$clients[$uuid]['timeout_stage']=0;
 					$clients[$uuid]['last_reception']=time();
+					$clients[$uuid]['read_class']->read_buffer();
 				}
 			}
 			else 

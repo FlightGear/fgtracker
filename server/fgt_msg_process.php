@@ -74,7 +74,7 @@ class fgt_msg_process
 		global $fgt_error_report,$clients,$fgt_sql;
 		if($fgt_sql->inTransaction===true)
 		{
-			$message=" SQL TRANSACTION is called more than once";
+			$message="SQL TRANSACTION is called more than once";
 			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
 			$fgt_sql->connected=false;
 			$clients[$this->uuid]['connected']=false;
@@ -345,6 +345,7 @@ class fgt_msg_process
 			$sql_parm=Array("FGTracker",$email_title,$email_content);
 			$sql="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, NULL, $2, NOW(), NULL,$3,NULL,NULL);";
 			pg_query_params($fgt_sql->conn,$sql,$sql_parm);
+			$clients[$this->uuid]['connected']=false;
 			return false;
 		}
 		$fgt_sql->inTransaction=false;
