@@ -57,7 +57,7 @@ class fgt_postgres{
 				sleep(1);
 				if(time()-$last_failed>30)
 				{
-					$this->connectmaster();
+					$this->connectmaster($appname);
 					break;
 				}
 				if($var['exitflag']===true)
