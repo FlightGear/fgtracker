@@ -235,7 +235,7 @@ class fgt_msg_process
 				pg_query_params($fgt_sql->conn,$sql4,$sql_parm);
 				
 				$sql_parm=Array("FGTracker",$msg_array['callsign'],$clients[$this->uuid]['server_ident']);
-				$sql5="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, 'flights', 'FGTracker auto merge flight $flightid to $p_flightid', NOW(), $2,$3,$p_flightid,$flightid);";
+				$sql5="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, 'flights', 'Auto merge flight $flightid to $p_flightid', NOW(), $2,$3,$p_flightid,$flightid);";
 				pg_query_params($fgt_sql->conn,$sql5,$sql_parm);
 				
 				$this->open_flight_array[$msg_array['callsign']]['id']=$p_flightid;
@@ -314,12 +314,6 @@ class fgt_msg_process
 		$res=$this->fgt_pg_query_params($sql,Array());
 		if ($res===false or $res==NULL)
 		{
-			$phpErr=error_get_last();
-			$message_dump=$message="SQL Commit failed - ".pg_last_error ($fgt_sql->conn);
-			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
-			$message="PHP feedback of last error: ".$phpErr['message'];
-			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
-			$message_dump.="\n$message";
 			pg_query_params($fgt_sql->conn,"rollback;",Array());
 			$fgt_sql->inTransaction=false;
 			

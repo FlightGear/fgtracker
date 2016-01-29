@@ -92,10 +92,10 @@ class fgt_postgres{
 		else return true;
 	}
 	
-	function check_no_of_FGTracker_service_instance($max_allowed)
-	{
+	function check_no_of_instance($appname,$max_allowed)
+	{	/*appname without version number. Ruturn true if not exceed. Max allowed should include instance itself (i.e. $max_allowed should be at least 1.)*/
 		global $var,$fgt_error_report,$fgt_conn;
-		$res=pg_query($this->conn,"SELECT pid, application_name FROM pg_stat_activity where application_name LIKE 'FGTracker Service%';");
+		$res=pg_query($this->conn,"SELECT pid, application_name FROM pg_stat_activity where application_name LIKE '$appname%';");
 		if ($res===false)
 			return false;
 		$nr=pg_num_rows($res);
