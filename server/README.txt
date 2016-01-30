@@ -1,7 +1,7 @@
-FGtracker server version 2.1alpha
+FGtracker server version 2.1
 
 1.Supporting FGMS
-Current version (Version 2.1alpha) support the following fgms:
+Current version (Version 2.1) support the following fgms:
 v0.10 : v0.10.23 and above
 v0.11 :	NOT OFFICALLY SUPPORTED (Due to bugs)
 v0.12 : All versions

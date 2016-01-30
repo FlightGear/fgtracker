@@ -330,7 +330,7 @@ class UpdateMgr
 				
 				/*write to log*/
 				$sql="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, NULL, $2, NOW(), $3,NULL,$4,NULL);";
-				$res=$this->fgt_pg_query_params($sql,Array($var['appname'],"$count_del_wpts waypoints removed from flight $current_flight_id due to plane idling",$callsign,$current_flight_id));
+				$res=$this->fgt_pg_query_params($sql,Array($var['appname'],"$count_del_wpts waypoint(s) removed from flight $current_flight_id due to plane idling",$callsign,$current_flight_id));
 				
 				if ($table=="waypoints_archive")
 				{

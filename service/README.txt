@@ -1,4 +1,4 @@
-FGTracker service Version 1.0INCOMPLETE
+FGTracker service Version 1.0
 
 1. This program consistes of two modes: Normal mode and archive mode.
 In normal mode, this program fixes irregular data and data twisting on 
@@ -10,9 +10,9 @@ completed flights. I.e.
 - update callsign rankings (all time, last week, last 30days etc.)
 
 In archive mode, this program will attempt to archive flight data by moving
-flight data in table 'flights' to table 'flights_archive'. It also try to shrink
-data by removing non-useful data such as nowaypoint flights, waypoints during 
-flight idling etc.
+flight data in table 'flights' to table 'flights_archive', and waypoints data in
+table 'waypoints' to 'waypoints_archive'It also try to shrink data by removing 
+non-useful data such as nowaypoint flights, waypoints during flight idling etc.
 
 2. NOTICE to Windows user
 This program should be able to run in Windows environment. However, the exit
