@@ -213,19 +213,21 @@ class UpdateMgr
 		$message="Fixing no orphan waypoints and no waypoint flights";
 		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 		
+		/* FIX ME: expensive performance hit
 		$sql="delete from waypoints where flight_id is null or flight_id not in (select id from flights)";
 		$res=$this->fgt_pg_query_params($sql,NULL);
 		if($res===false)
 			return;
-		$message=pg_affected_rows($res)." waypoints removed";
-		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_NOTICE);
+		$message=pg_affected_rows($res)." waypoints removed";*/
+		$message="Orphan waypoints fixing is disabled in this version";
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 		
 		$sql="delete from flights where id not in (select distinct flight_id from waypoints) and status = 'CLOSED' and start_time < $1";
 		$res=$this->fgt_pg_query_params($sql,Array($var['archive_date']));
 		if($res===false)
 			return;
 		$message=pg_affected_rows($res)." flights removed";
-		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_NOTICE);
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 	}
 	
 	public function trim_waypoints($table)/*Waypoints ID cleared*/
