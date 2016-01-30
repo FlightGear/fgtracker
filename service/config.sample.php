@@ -1,6 +1,5 @@
 <?php
 /*variable setup*/
-$var['port'] = 8000; /*Port to bind*/
 $var['error_reporting_level'] = E_NOTICE; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
 $var['log_location']=dirname(__FILE__);
 $var['fgtracker_xoops_location']="../web/xoops_modules/fgtracker"; /*Define the dependency - FGTracker XOOPS modules here*/

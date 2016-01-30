@@ -112,7 +112,7 @@ while(1)
 		break;
 	if ($var['archive_mode']===true and $result[1]===true)
 	{
-		$message="Archive failed. Please clear issues on identifcal waypoints first";
+		$message="Archive failed. Please clear issues on identical waypoints first";
 		$fgt_error_report->fgt_set_error_report("CORE",$message,E_ERROR);
 		break;
 	}

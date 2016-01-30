@@ -152,6 +152,8 @@ class UpdateMgr
 		  if $sql_parm is an array, pg_query_params is used
 		*/
 		global $fgt_error_report,$var,$fgt_sql;
+		$sub_pid="FGQUERY";
+		
 		if($sql_parm==NULL)
 			$res=pg_query($fgt_sql->conn,$sql);
 		else
@@ -160,11 +162,11 @@ class UpdateMgr
 		{
 			$phpErr=error_get_last();
 			$message="Internal DB Error - ".pg_last_error ($fgt_sql->conn);
-			$fgt_error_report->fgt_set_error_report("FGQUERY",$message,E_ERROR);
+			$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_ERROR);
 			$message="SQL command of last error: ".$sql;
-			$fgt_error_report->fgt_set_error_report("FGQUERY",$message,E_ERROR);
+			$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_ERROR);
 			$message="PHP feedback of last error: ".$phpErr['message'];
-			$fgt_error_report->fgt_set_error_report("FGQUERY",$message,E_ERROR);
+			$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_ERROR);
 			$var['exitflag']=true;
 			return false;
 		}return $res;
@@ -173,9 +175,10 @@ class UpdateMgr
 	public function fix_erric_data() /*Waypoints ID cleared*/
 	{
 		global $fgt_sql,$fgt_error_report;
+		$sub_pid="F_ERRIC";
 		
 		$message="Fixing erric data";
-		$fgt_error_report->fgt_set_error_report("F_ERRIC",$message,E_WARNING);
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 		
 		/*Waypoints with altitude < -9000*/
 		$sql="delete from waypoints where altitude<-9000";
@@ -184,8 +187,8 @@ class UpdateMgr
 			return;
 		$nr=pg_affected_rows($res);
 		pg_free_result($res);
-		$message="$nr waypoints with altitude < -9000 deleted.";
-		$fgt_error_report->fgt_set_error_report("F_ERRIC",$message,E_NOTICE);
+		$message="$nr waypoints with altitude < -9000 deleted";
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_NOTICE);
 		
 		/*Flights with negative flight duration*/
 		$sql="delete from flights where start_time > end_time";
@@ -195,33 +198,34 @@ class UpdateMgr
 		$nr=0;
 		$nr=pg_affected_rows($res);
 		pg_free_result($res);
-		$message="$nr flight with negative flight time deleted.";
-		$fgt_error_report->fgt_set_error_report("F_ERRIC",$message,E_NOTICE);
+		$message="$nr flight with negative flight time deleted";
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_NOTICE);
 		
 		$message="Finished fixing erric data";
-		$fgt_error_report->fgt_set_error_report("F_ERRIC",$message,E_WARNING);
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 	}
 	
 	public function fix_no_waypoint_flights() /*Waypoints ID cleared*/
 	{
 		global $fgt_sql,$fgt_error_report,$var;
-		
+		$sub_pid="A_ORPHA";
+
 		$message="Fixing no orphan waypoints and no waypoint flights";
-		$fgt_error_report->fgt_set_error_report("A_ORPHA",$message,E_WARNING);
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 		
-		$sql="delete from waypoints where flight_id is null";
+		$sql="delete from waypoints where flight_id is null or flight_id not in (select id from flights)";
 		$res=$this->fgt_pg_query_params($sql,NULL);
 		if($res===false)
 			return;
 		$message=pg_affected_rows($res)." waypoints removed";
-		$fgt_error_report->fgt_set_error_report("A_ORPHA",$message,E_NOTICE);
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_NOTICE);
 		
-		$sql="delete from flights where id not in (select distinct flight_id from waypoints) and status = 'CLOSED'";
-		$res=$this->fgt_pg_query_params($sql,NULL);
+		$sql="delete from flights where id not in (select distinct flight_id from waypoints) and status = 'CLOSED' and start_time < $1";
+		$res=$this->fgt_pg_query_params($sql,Array($var['archive_date']));
 		if($res===false)
 			return;
 		$message=pg_affected_rows($res)." flights removed";
-		$fgt_error_report->fgt_set_error_report("A_ORPHA",$message,E_NOTICE);
+		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_NOTICE);
 	}
 	
 	public function trim_waypoints($table)/*Waypoints ID cleared*/
@@ -324,7 +328,7 @@ class UpdateMgr
 				
 				/*write to log*/
 				$sql="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, NULL, $2, NOW(), $3,NULL,$4,NULL);";
-				$res=$this->fgt_pg_query_params($sql,Array($var['appname'],"$count_del_wpts waypoints removed due to plane idling",$callsign,$current_flight_id));
+				$res=$this->fgt_pg_query_params($sql,Array($var['appname'],"$count_del_wpts waypoints removed from flight $current_flight_id due to plane idling",$callsign,$current_flight_id));
 				
 				if ($table=="waypoints_archive")
 				{
