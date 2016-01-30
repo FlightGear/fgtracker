@@ -1,0 +1,61 @@
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyB_XARtAkZfv8AIOVProEKilytISia5sGM&&sensor=false" type="text/javascript"></script>
+
+<CENTER>
+<{section name=k loop=$topmsg}>
+<{$topmsg[k]}>
+<{/section}>
+<H1>Aitport details</H1>
+<{if $icao!=null}>
+<div style="float: left;">
+	 <iframe height="400px" width="400px" src="http://mpserver15.flightgear.org/maps/fullmap.php?lat=<{$lat}>&lon=<{$lon}>"></iframe>
+</div>
+
+<div style="float: right; width: 350px;">
+	<table border="1">
+		<tr>
+		<td colspan="2" align="right">
+		<{if $country!=null or country!="--"}>
+			<img src="icons/country-small/<{$country}>.png"  />
+		<{else}>
+			<img src="icons/country-small/unk.png" />
+		<{/if}>
+		</td>
+		</tr>
+		<tr>
+			<th>Airport:</th>
+			<td><a href="http://www.airportnavfinder.com/airport/<{$icao}>" target="_blank"> <{$icao}> - <{$name}></a></td>
+		</tr>
+		<tr>
+			<th>Type:</th>
+			<td><{$type}></td>
+		</tr>
+		<tr>
+			<th>Latitude/Longitude:</th>
+			<td><{$lat}>,<{$lon}></td>
+		</tr>
+		<tr>
+			<th>Altitude:</th>
+			<td><{$alt}>ft</td>
+		</tr>
+		<tr>
+			<th>City/Region:</th>
+			<td><{$city}></td>
+		</tr>
+		<tr>
+			<th>Further information:</th>
+			<td><a href="http://www.airportnavfinder.com/airport/<{$icao}>" target="_blank">Airport Nav Finder</a><br />
+				<a href="https://skyvector.com/?ll=<{$lat}>,<{$lon}>&zoom=2" target="_blank">Sky Vector</a></td>
+		</tr>
+	</table>
+	<table border="1" width="350">
+		<tr><th colspan="6">CALLSIGN IN VICINITY</th></tr>
+		<tr><th>Callsign</th><th>Model</th><th>Distance from <{$icao}></th><th>Bearing</th><th>Heading</th><th>Speed</th></tr>
+		<{section name=i loop=$pilots_in_vic}>
+		<tr><td><a href="?FUNCT=FLIGHT&FLIGHTID=<{$pilots_in_vic[i].flight_id}>"><{$pilots_in_vic[i].callsign}></a></td><td><{$pilots_in_vic[i].model}></td>
+		<td><{$pilots_in_vic[i].distance}>Nm</td><td><{$pilots_in_vic[i].bearing}>°</td><td><{$pilots_in_vic[i].heading}>°</td><td><{$pilots_in_vic[i].speed}>kts</td></tr>
+		<{/section}>
+	</table>
+</div>
+<{else}>
+No airport information can be displayed.
+<{/if}>

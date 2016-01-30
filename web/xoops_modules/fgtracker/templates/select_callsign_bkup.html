@@ -1,0 +1,83 @@
+<CENTER>
+<center><!--<font color="blue">You are using FG Tracker (Salve) powered by Hazuki</font></center>-->
+<{section name=k loop=$topmsg}>
+<{$topmsg[k]}>
+<{/section}>
+<H1>Select callsign</H1>
+<FORM METHOD=GET ACTION="">
+<INPUT TYPE=HIDDEN NAME="FUNCT" VALUE="FLIGHTS">
+<TABLE style="width: 400px;">
+	<TR><TD WIDTH=150 ALIGN=RIGHT BGCOLOR=#F0F0F0>Enter your callsign:</TD><TD BGCOLOR=#F0F0F0><INPUT TYPE=TEXT NAME="CALLSIGN"><INPUT VALUE="GO" TYPE=SUBMIT></TD></TR>
+</TABLE>
+<BR>
+</FORM>
+<TABLE style="width: 600px;">
+	<TR><TH COLSPAN=11><center>TRACKING PILOTS (<{$no_of_tracking_pilots}>)</center></TH></TR>
+	<TR>
+		<TH>Callsign</TH><TH>Model</TH><TD>&nbsp;</TD><TH>Callsign</TH><TH>Model</TH><TD>&nbsp;</TD><TH>Callsign</TH><TH>Model</TH><TD>&nbsp;</TD><TH>Callsign</TH><TH>Model</TH
+	</TR>
+	<{section name=i loop=$tracking_pilots}>
+	<tr><td><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id0}>"><{$tracking_pilots[i].callsign0}></a></td>
+	<td><{$tracking_pilots[i].model0}></td>
+	<TD>&nbsp;</TD>
+	<td><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id1}>"><{$tracking_pilots[i].callsign1}></a></td>
+	<td><{$tracking_pilots[i].model1}></td>
+	<TD>&nbsp;</TD>
+	<td><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id2}>"><{$tracking_pilots[i].callsign2}></a></td>
+	<td><{$tracking_pilots[i].model2}></td>
+	<TD>&nbsp;</TD>
+	<td><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id3}>"><{$tracking_pilots[i].callsign3}></a></td>
+	<td><{$tracking_pilots[i].model3}></td>
+	</tr>
+	
+	<{/section}>
+</table>
+<TABLE style="width: 600px;">
+	<TR><TH COLSPAN=3><center>10 RECENT STARTED FLIGHT</center></TH><td>&nbsp;</td><TH COLSPAN=3><center>10 RECENT ENDED FLIGHT</center></TH></TR>
+	<TR>
+		<TH>Callsign</TH><TH>Model</TH><TH>Start Time</TH><td>&nbsp;</td><TH>Callsign</TH><TH>Model</TH><TH>End Time</TH>
+	</TR>
+	<{section name=i loop=$ten_openflight}>
+	<tr><td><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$ten_openflight[i].flight_id}>"><{$ten_openflight[i].callsign}></a></td>
+	<td><{$ten_openflight[i].model}></td>
+	<td><{$ten_openflight[i].start_time}></td><TD>&nbsp;</TD>
+	<td><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$ten_closedflight[i].flight_id}>"><{$ten_closedflight[i].callsign}></a></td>
+	<td><{$ten_closedflight[i].model}></td>
+	<td><{$ten_closedflight[i].end_time}></td>
+	</tr>
+	
+	<{/section}>
+</table>
+<TABLE style="width: 600px;">
+	<TR><TH COLSPAN=2><center>TOP 10 PILOTS IN ONE WEEK</center></TH><td>&nbsp;</td><TH COLSPAN=2><center>TOP 10 PILOTS IN ONE MONTH</center></TH></TR>
+	<TR>
+		<TH WIDTH=200>Callsign</TH><TH WIDTH=200>Total flight time</TH><td>&nbsp;</td><TH WIDTH=200>Callsign</TH><TH WIDTH=200>Total flight time</TH>
+	</TR>
+	<{section name=i loop=$top10_1Week}>
+	<tr><td><A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$top10_1Week[i].callsign}>"><{$top10_1Week[i].callsign}></a></td>
+	<td><{$top10_1Week[i].flighttime}></td><TD>&nbsp;</TD>
+	<td><A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$top10_1Month[i].callsign}>"><{$top10_1Month[i].callsign}></a></td>
+	<td><{$top10_1Month[i].flighttime}></td>
+	</tr>
+	
+	<{/section}>
+</table>
+
+<TABLE style="width: 600px;">
+	<TR><TH COLSPAN=5><center>TOP 100 PILOTS ALL TIME</center></TH></TR>
+	<TR>
+		<TH WIDTH=200>Callsign</TH><TH WIDTH=200>Total flight time</TH><TD width=10>&nbsp;</TD>
+		<TH WIDTH=200>Callsign</TH><TH WIDTH=200>Total flight time</TH>
+	</TR>
+
+	<{section name=i loop=$callsigns}>
+	<TR>
+	<TD ALIGN=LEFT BGCOLOR=#F0F0F0><A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsigns[i].callsign}>"><{$callsigns[i].callsign}></a></TD>
+	<TD ALIGN=right BGCOLOR=#F0F0F0><{$callsigns[i].flighttime}></TD><TD width=10>&nbsp;</TD>
+	<TD ALIGN=LEFT BGCOLOR=#F0F0F0><A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsigns2[i].callsign}>"><{$callsigns2[i].callsign}></a></TD>
+	<TD ALIGN=right BGCOLOR=#F0F0F0><{$callsigns2[i].flighttime}></TD>
+	</TR>
+	<{/section}>
+
+</TABLE>
+</CENTER>   

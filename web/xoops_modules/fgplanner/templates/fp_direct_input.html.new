@@ -1,0 +1,46 @@
+<FORM name=direct ACTION="" METHOD=POST>
+<INPUT TYPE=HIDDEN NAME=FUNCT VALUE="PLAN">
+
+<CENTER>
+<TABLE style="width: 500px;">
+	<TR>
+		<TD ALIGN=LEFT><B>Departure apt:</B></TD>
+		<TD ALIGN=LEFT><SELECT NAME=DEP>
+		    <{section name=i loop=$airports}>
+		    <OPTION VALUE="<{$airports[i].icao}>"><{$airports[i].icao}> - <{$airports[i].name}></OPTION>
+		    <{/section}>
+		    </SELECT>
+		</TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Arrival apt:</B></TD>
+		<TD ALIGN=LEFT><SELECT NAME=ARR>
+		    <{section name=i loop=$airports}>
+		    <OPTION VALUE="<{$airports[i].icao}>"><{$airports[i].icao}> - <{$airports[i].name}></OPTION>
+		    <{/section}>
+		    </SELECT>
+		</TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Mode:</B></TD>
+		<TD ALIGN=LEFT><SELECT NAME=MODE><OPTION VALUE=DIRECT>Direct flight</OPTION><OPTION SELECTED VALUE=NAVAID>Via navaids</OPTION></SELECT></TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>In flightplan include:</B></TD>
+		<TD ALIGN=LEFT><INPUT TYPE=CHECKBOX NAME=VOR CHECKED>VORs<BR><INPUT TYPE=CHECKBOX NAME=NDB>NDBs<BR><INPUT TYPE=CHECKBOX NAME=FIX>FIXes</TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Preferred minimal distance between wpts.:</B></TD>
+		<TD ALIGN=LEFT><INPUT TYPE="TEXT" SIZE=4 NAME=WPTMIN VALUE=40> nm</TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Preferred maximal distance between wpts.:</B></TD>
+		<TD ALIGN=LEFT><INPUT TYPE="TEXT" SIZE=4 NAME=WPTMAX VALUE=100> nm</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=2 ALIGN=CENTER><INPUT TYPE=SUBMIT VALUE="Plan!"></TD>
+	</TR>
+</TABLE>
+</CENTER>
+</FORM>
+    

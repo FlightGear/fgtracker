@@ -61,10 +61,14 @@ class fgt_connection_mgr
 	{
 		global $fgt_error_report,$clients,$var;
 		
-		if(time()-$clients[$uuid]['last_reception']-$var['ping_interval']*$clients[$uuid]['timeout_stage']>$var['ping_interval'])
+		if($clients[$uuid]['identified']===false)
+			$interval=$var['ident_interval'];
+		else $interval=$var['ping_interval'];
+		
+		if(time()-$clients[$uuid]['last_reception']-$interval*$clients[$uuid]['timeout_stage']>$interval)
 		{
 			$clients[$uuid]['timeout_stage']++;
-			$timeout=($clients[$uuid]['timeout_stage'])*$var['ping_interval'];
+			$timeout=($clients[$uuid]['timeout_stage'])*$interval;
 			if($clients[$uuid]['timeout_stage']>3)
 			{
 				$clients[$uuid]['connected']=false;
@@ -87,7 +91,7 @@ class fgt_connection_mgr
 		global $fgt_error_report,$clients;
 		if($clients[$uuid]['connected']===false)
 		{
-			$clients[$uuid]['write_buffer'].="Error : FGTracker is closing your connection\0";
+			$clients[$uuid]['write_buffer'].="ERROR FGTracker is closing your connection\0";
 			$this->write_connection($uuid);
 			socket_close($clients[$uuid]['socket']);
 			$message="Stopped connection with ".$clients[$uuid]['server_ident']." (UUID=$uuid)";
@@ -105,7 +109,7 @@ class fgt_connection_mgr
 		foreach($clients as $uuid=>$client)
 		{
 			$clients[$uuid]['connected']=false;
-			$clients[$uuid]['write_buffer'].="Error : Fgtracker is closing your connection\0";
+			$clients[$uuid]['write_buffer'].="ERROR FGTracker is closing your connection\0";
 			$this->write_connection($uuid);
 			socket_close($clients[$uuid]['socket']);
 			$message="Stopped connection with ".$clients[$uuid]['server_ident']." (UUID=$uuid)";
@@ -120,10 +124,10 @@ class fgt_connection_mgr
 	function read_connection($uuid)
 	{
 		/*read connection to buffer
-		Return true if success, false if failed
+		Return bytes received on success (0 if no new data), false if failed
 		*/
 		global $fgt_error_report,$clients;
-		if(socket_recv ( $clients[$uuid]['socket'] , $buft , 2048 , MSG_DONTWAIT )===false)
+		if(socket_recv ( $clients[$uuid]['socket'] , $buft , 1024000 , MSG_DONTWAIT )===false)
 		{
 			if(socket_last_error ($clients[$uuid]['socket'])!=11)
 			{
@@ -132,18 +136,17 @@ class fgt_connection_mgr
 				$clients[$uuid]['connected']=false;
 				return false;
 			}
-			return true;
+			return 0;
 		}else
 		{
 			$clients[$uuid]['read_buffer'].=$buft;
-			return true;
+			return strlen($buft);
 		}
 	}
 	
 	function write_connection($uuid)
 	{
-		/*write buffer to connection
-		*/
+		/*write buffer to connection*/
 		global $fgt_error_report,$clients;
 		$i=0;
 		while(strlen ($clients[$uuid]['write_buffer'])!=0)
@@ -157,7 +160,7 @@ class fgt_connection_mgr
 			$i++;	
 			/*check if stuck in write buffer too long. If so break*/
 			$bytes_written=socket_write($clients[$uuid]['socket'], $clients[$uuid]['write_buffer'], strlen ($clients[$uuid]['write_buffer']));
-			$message="Wrote $bytes_written bytes to ".$clients[$uuid]['server_ident'];
+			$message="Wrote $bytes_written bytes to ".$clients[$uuid]['server_ident']."(".str_replace("\0",chr(178),substr($clients[$uuid]['write_buffer'], 0,$bytes_written)).")";
 			$fgt_error_report->fgt_set_error_report("CORE",$message,E_ALL);
 			if($bytes_written===false)
 			{

@@ -1,5 +1,10 @@
 Migration Instructions of fgtracker
 
+From v2.0 to v2.1
+[db]		table waypoints altered. Added "heading". All other columns changed to "NOT NULL" 
+[db]		table waypoints_all altered. Added "heading"
+[db]		table waypoints_archive altered. Added "heading". All other columns changed to "NOT NULL" 
+
 From v1.6 to v2.0
 [program]	Fully replaced
 [db]		table fgt_servers added
@@ -12,7 +17,7 @@ Note: A new table fgt_servers is added which stores the fgms information. You mu
 fgt_server:
 name			: Unique name of fgms
 ip				: IP or domain name of fgms
-key	text		: "NOWAIT" if fgms version is v10.0.23 or above; "V20151207" if fgms version is v0.11.10 or above
+key	text		: "NOWAIT" if fgms version is v10.0.23 or above; "V20151207" if fgms version is v0.12.0 or above
 maintainer		: Name of the maintainer
 location		: Physical address of fgms
 email			: Email of maintainer (for future auto-notification email)

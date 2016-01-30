@@ -34,14 +34,19 @@ class fgt_read_NOWAIT
 			$lines=explode("\0", $clients[$this->uuid]['read_buffer'],2);
 			$line=$lines[0];
 			$clients[$this->uuid]['read_buffer']=$lines[1];
-			print "NOWAIT: $line\n";
+			if ($var['error_reporting_level'] == E_ALL)
+				$message="Received packet: $line";
+			else $message="Received packet";
+			$fgt_error_report->fgt_set_error_report("R_NOWAIT",$message,E_NOTICE);
+			$fgt_error_report->log_client_msg($clients[$this->uuid]['server_ident'], $line);
 			/*Sometimes the fgms sends invalid packets. Below is a workaround to prevent unnessary forced exit. 
 			Example of Invalid messgae are:
 			POSITION * Bad Client *  0 0 . 2012-12-03 21:03:53
 			DISCONNECT * Bad Client *  * unknown * 2012-12-03 20:56:32
 			POSITION franck test  . . . 2012-12-08 14:28:42
+			POSITION edji-x test -15.325710 35.681043 . 313.231018 10.049998 -45.658264 2015-12-31 01:54:54" not recognized
 			*/
-			if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , ". . ."  )!==false)
+			if(stripos ( $line , "* Bad Client *"  )!==false or stripos ( $line , " . "  )!==false)
 			{
 				$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
 				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
@@ -59,6 +64,10 @@ class fgt_read_NOWAIT
 			{
 				$message="PONG received";
 				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ALL);
+			}else if($data[2]!="test")
+			{
+				$message="Unrecognized Message from ".$clients[$this->uuid]['server_ident'] ."($line). Message ignored";
+				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 			}else if($data[0]=="POSITION")
 			{
 				$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'lat'=>$data[3],'lon'=>$data[4],'alt'=>$data[5],'date'=>$data[6],'time'=>$data[7]);
@@ -74,7 +83,7 @@ class fgt_read_NOWAIT
 				$clients[$this->uuid]['write_buffer'].="Failed : Message not recognized\0";
 				$clients[$this->uuid]['connected']=false;
 			}
-			if($clients[$this->uuid]['msg_process_class']->msg_end()===false)
+			if($clients[$this->uuid]['msg_process_class']->msg_end($lines)===false)
 				return false;
 			if($clients[$this->uuid]['connected']===false or $fgt_sql->connected===false)
 				return false;

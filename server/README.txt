@@ -1,7 +1,7 @@
-FGtracker server version 2.0
+FGtracker server version 2.1
 
 1.Supporting FGMS
-Current version (Version 2.0) support the following fgms:
+Current version (Version 2.1) support the following fgms:
 v0.10 : v0.10.23 and above
 v0.11 :	NOT OFFICALLY SUPPORTED (Due to bugs)
 v0.12 : All versions
@@ -15,7 +15,8 @@ at the time of quit the sockets are idle, otherwise data discrepancy may occur.
 See heading of server.php
 
 4. Parameters
-System parameters can be set at the heading of server.php
+Sample of Parameters is located in config.sample.php. Copy this file to 
+config.php and set the parameters according to your system enviroment.
 
 5. Run
 Simply type "php server.php" to run the server

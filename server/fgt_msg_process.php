@@ -10,7 +10,7 @@ class fgt_msg_process
 		$this->uuid=$uuid;
 		
 		/*Get opening flights*/
-		$sql="select flights.id,callsign, count(*) as cnt from flights join waypoints on waypoints.flight_id=flights.id where status='OPEN' AND (server='".$clients[$this->uuid]['server_ident'] ."' or server is NULL) group by flights.id, callsign";
+		$sql="select flights.id,callsign,start_time, count(waypoints.flight_id) as cnt from flights left join waypoints on waypoints.flight_id=flights.id where status='OPEN' AND (server='".$clients[$this->uuid]['server_ident'] ."' or server is NULL) group by flights.id, callsign, start_time order by callsign, start_time";
 		$res=pg_query($fgt_sql->conn,$sql);
 		if ($res===false or $res==NULL)
 		{
@@ -74,7 +74,7 @@ class fgt_msg_process
 		global $fgt_error_report,$clients,$fgt_sql;
 		if($fgt_sql->inTransaction===true)
 		{
-			$message=" SQL TRANSACTION is called more than once";
+			$message="SQL TRANSACTION is called more than once";
 			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
 			$fgt_sql->connected=false;
 			$clients[$this->uuid]['connected']=false;
@@ -104,6 +104,7 @@ class fgt_msg_process
 			return false;
 		}
 
+		/*process message*/
 		switch ($msg_array['nature'])
 		{
 			case "POSITION":
@@ -117,19 +118,21 @@ class fgt_msg_process
 				if(intval($msg_array['alt'])<-9000)
 				{
 					$message="$err_prefix Invalid altitude (".$msg_array['alt'].")";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_NOTICE);
+					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 					break;
 				}
 				if(intval($msg_array['alt'])==0 and intval($msg_array['lat'])==0 and intval($msg_array['lon'])==0)
 				{
 					$message="$err_prefix Invalid position (".$msg_array['lat'].", ".$msg_array['lon'].", ".$msg_array['alt'].")";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_NOTICE);
+					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
 					break;
 				}
 				$timestamp=$msg_array['date']." ".$msg_array['time']." Z";
 				/*TODO: Use UPSERT once PostgreSQL 9.5 is available*/
-				$sql_parm=Array($this->open_flight_array[$msg_array['callsign']]['id'],$timestamp,$msg_array['lat'],$msg_array['lon'],$msg_array['alt']);
-				$sql="INSERT INTO waypoints(flight_id,time,latitude,longitude,altitude)VALUES ($1,$2,$3,$4,$5);";
+				if(!isset($msg_array['heading']))
+					$msg_array['heading']=null;
+				$sql_parm=Array($this->open_flight_array[$msg_array['callsign']]['id'],$timestamp,$msg_array['lat'],$msg_array['lon'],$msg_array['alt'],$msg_array['heading']);
+				$sql="INSERT INTO waypoints(flight_id,time,latitude,longitude,altitude,heading)VALUES ($1,$2,$3,$4,$5,$6);";
 				
 				$res=$this->fgt_pg_query_params($sql,$sql_parm);
 				if ($res===false or $res==NULL)
@@ -164,7 +167,7 @@ class fgt_msg_process
 				$message="First phase pass on callsign ".$msg_array['callsign']." (Previous flight id: $p_flightid). Conduct second phase check";
 				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ALL);
 				$sql_parm=Array($flightid,$p_flightid);
-				$sql='(select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$1 order by time desc) UNION all (select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$2 order by time desc limit 2)';						
+				$sql='(select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$1 order by time desc) UNION all (select flight_id, extract(epoch from "time") AS time, latitude, longitude from waypoints where flight_id=$2 order by time desc offset 1 limit 2)';						
 				$res=$this->fgt_pg_query_params($sql,$sql_parm);
 				if ($res===false or $res==NULL)
 					return false;
@@ -231,8 +234,8 @@ class fgt_msg_process
 				$sql4="delete from flights where id=$1;";
 				pg_query_params($fgt_sql->conn,$sql4,$sql_parm);
 				
-				$sql_parm=Array($clients[$this->uuid]['server_ident'],$msg_array['callsign']);
-				$sql5="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, 'flights', 'FGTracker auto merge flight $flightid to $p_flightid', NOW(), $2,NULL,$p_flightid,$flightid);";
+				$sql_parm=Array("FGTracker",$msg_array['callsign'],$clients[$this->uuid]['server_ident']);
+				$sql5="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, 'flights', 'Auto merge flight $flightid to $p_flightid', NOW(), $2,$3,$p_flightid,$flightid);";
 				pg_query_params($fgt_sql->conn,$sql5,$sql_parm);
 				
 				$this->open_flight_array[$msg_array['callsign']]['id']=$p_flightid;
@@ -247,10 +250,13 @@ class fgt_msg_process
 					if ($res===false or $res==NULL)
 						return false;
 					
-					$close_time=pg_result($res,0,"time");
+					if(pg_num_rows($res)!=1)
+						$close_time=NULL;
+					else
+						$close_time=pg_result($res,0,"time");
 					pg_free_result($res);
 
-					if($close_time=="")
+					if($close_time==NULL)
 					{
 						$sql_parm=Array($this->open_flight_array[$msg_array['callsign']]['id']);
 						$sql="UPDATE flights SET status='CLOSED',end_time=start_time WHERE id=$1;";
@@ -280,7 +286,7 @@ class fgt_msg_process
 				pg_free_result($res);
 				
 				$message="Welcome callsign \"".$msg_array['callsign']."\" with flight id ".$this->open_flight_array[$msg_array['callsign']]['id'];
-				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
+				$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_NOTICE);
 			break;
 			case "DISCONNECT":
 				$err_prefix="Could not DISCONNECT for callsign \"".$msg_array['callsign']."\" from ".$clients[$this->uuid]['server_ident'].".";
@@ -301,24 +307,51 @@ class fgt_msg_process
 		}
 		return true;
 	}
-	function msg_end()
+	function msg_end($packet)
 	{	
-		global $fgt_error_report,$clients,$fgt_sql;
+		global $fgt_error_report,$clients,$fgt_sql,$var;
 		$sql="COMMIT;";
 		$res=$this->fgt_pg_query_params($sql,Array());
 		if ($res===false or $res==NULL)
 		{
-			$phpErr=error_get_last();
-			$message="SQL Commit failed - ".pg_last_error ($fgt_sql->conn);
-			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
-			$message="PHP feedback of last error: ".$phpErr['message'];
-			$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_ERROR);
 			pg_query_params($fgt_sql->conn,"rollback;",Array());
-			return false;
 			$fgt_sql->inTransaction=false;
+			
+			/*Block this server from reconnecting until problem fixed*/
+			$sql="UPDATE fgms_servers SET enabled=FALSE where name=$1";
+			pg_query_params($fgt_sql->conn,$sql,Array($clients[$this->uuid]['server_ident']));
+			
+			$email_content="[".date('Y-m-d H.i.s')."] During the process of the following packet:
+			===============================================
+			$packet
+			===============================================
+			
+			Error occured and here below is the message dump:
+			$message_dump
+			
+			FGTracker
+			";
+			$email_content=str_replace("\n","\r\n", $email_content);
+			$email_title=$clients[$this->uuid]['server_ident']." is blocked due to SQL Error";
+			if ($var['error_email_send']===true)
+				$fgt_error_report->send_email( $email_title, $email_content);
+			
+			$sql_parm=Array("FGTracker",$email_title,$email_content);
+			$sql="INSERT into log (username,\"table\",action,\"when\",callsign,usercomments,flight_id,flight_id2) VALUES ($1, NULL, $2, NOW(), NULL,$3,NULL,NULL);";
+			pg_query_params($fgt_sql->conn,$sql,$sql_parm);
+			$clients[$this->uuid]['connected']=false;
+			return false;
 		}
 		$fgt_sql->inTransaction=false;
 		return true;
 	}
+	
+	function rollback()
+	{
+		global $fgt_sql;
+		pg_query_params($fgt_sql->conn,"rollback;",Array());
+		$fgt_sql->inTransaction=false;
+	}
+	
 }
 ?>

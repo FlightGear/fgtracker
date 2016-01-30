@@ -1,0 +1,337 @@
+<CENTER>
+<{section name=k loop=$topmsg}>
+<{$topmsg[k]}>
+<{/section}>
+<table>
+<tr><th>#</th><th>Section</th></tr>
+<tr><th>1</th><td><a href="#aircraftlist">Summary report per aircraft for <{$callsign}></a></td>
+<tr><th>2</th><td><a href="#arrivallist">Summary on departures by airport (top 100 at most)</a></td>
+<tr><th>3</th><td><a href="#departurelist">Summary on arrivals by airport (top 100 at most)</a></td>
+<tr><th>4</th><td><a href="#flightslist">Detailed flight log of <{$callsign}></a> <{if $archive == 1}>(Click <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>">here</a> for current data)<{else}>(Click <A HREF="?FUNCT=FLIGHTS&ARCHIVE=TRUE&CALLSIGN=<{$callsign}>">here</a> for flights on or before <{$archivedate[0]}>)<{/if}></td>
+<tr><th>5</th><td><a href="#alterlog">Recent data changes (top 100 by time descent)</td>
+</table>
+<hr>
+<p></p>
+<H1 id="aircraftlist">Summary report per aircraft for <a HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>"><{$callsign}></a> (top 100 at most) <a href="#headerWrap">[TOP &uarr;]</a></H1>
+<table>
+<tr>
+	<th>#</th>
+	<th>Type</th>
+	<th>Total flight duration</th>
+	<th>Effective flight time</th>
+	<td width=10>&nbsp;</td>
+	<th>#</th>
+	<th>Type</th>
+	<th>Total flight duration</th>
+	<th>Effective flight time</th>
+</tr>
+<{assign var=val value=1}>
+<{assign var=val2 value=2}>
+
+<{section name=i loop=$tablea}>
+<{if $val < 100}>
+	<tr>
+		<th><{$val}></th>
+		<td align="left" BGCOLOR=#F0F0F0><{$tablea[i].model}></td>
+		<td align="right" BGCOLOR=#F0F0F0><{$tablea[i].duration|replace:'days':'d'|replace:'day':'d'}></td>
+		<td align="right" BGCOLOR=#F0F0F0><{$tablea[i].effective_flight_time|replace:'days':'d'|replace:'day':'d'}></td>
+		<td width=10>&nbsp;</td>
+		<th>
+		<{if $tablea2[i].model!=null}>
+			<{$val2}>
+		<{/if}>
+		</th>
+		<td align="left" BGCOLOR=#F0F0F0><{$tablea2[i].model}></td>
+		<td align="right" BGCOLOR=#F0F0F0><{$tablea2[i].duration|replace:'days':'d'|replace:'day':'d'}></td>
+		<td align="right" BGCOLOR=#F0F0F0><{$tablea2[i].effective_flight_time|replace:'days':'d'|replace:'day':'d'}></td>
+	</tr>
+ <{/if}>
+<{assign var=val value=$val+2}>
+<{assign var=val2 value=$val2+2}>
+<{/section}>
+<tr>
+	<th></th>
+	<th>Total flight time</th>
+	<th>Effective flight time</th>
+	<th>Effective flight rate</th>
+	<td></td>
+	<th></th>
+	<th>Last month</th>
+	<th>Last week</th>
+	<th>Overall rank</th>
+</tr>
+<tr><th></th>
+	<th><{$total_flight_time}></th>
+	<th><{$effective_flight_time}></th>
+	<th><{$effective_flight_rate}></th>
+	<td></td>
+	<th></th>
+	<th><{$last30days}></th>
+	<th><{$lastweek}></th>
+	<th><{$rank}></th>
+</tr>
+</table>
+<p></p>
+
+<H1>Summary on departures/arrivals by airport (top 100 at most)</H1>
+
+<table id="departurelist">
+<tr>
+	<th colspan=8>Departure airports <a href="#headerWrap">[TOP &uarr;]</a></th>
+</tr>
+<tr>
+	<th>#</th>
+	<th>ICAO</th>
+	<th>Name</th>
+	<th>Count</th>
+	<th>#</th>
+	<th>ICAO</th>
+	<th>Name</th>
+	<th>Count</th>
+</tr>
+<{assign var=val value=1}>
+<{assign var=val2 value=2}>
+<{section name=i loop=$tablec}>
+<{if $val < 100}>
+	<tr>
+		<th><{$val}></th>
+		<td>
+			<{if $tablec[i].country!=null}>
+				<img src="icons/country-small/<{$tablec[i].country}>.png"  height="14" />
+			<{else}>
+				<{if $tablec[i].icao!=null}>
+					<img src="icons/country-small/unk.png"  height="14" />
+				<{/if}>
+			<{/if}>
+			<{if $tablec[i].icao!="----"}>
+				<a href="?FUNCT=AIRPORT&ICAO=<{$tablec[i].icao}>"><{$tablec[i].icao}></a>
+			<{else}><{$tablec[i].icao}>
+			<{/if}>
+		</td>
+		<td><{$tablec[i].icao_name}></td>
+		<td><{$tablec[i].count}></td>
+		<th>
+			<{if $tablec2[i].count!=null}>
+			<{$val2}>
+			<{/if}>
+		</th>
+		<td>
+			<{if $tablec2[i].country!=null}>
+				<img src="icons/country-small/<{$tablec2[i].country}>.png"  height="14" />
+			<{else}>
+				<{if $tablec2[i].icao!=null}>
+					<img src="icons/country-small/unk.png"  height="14" />
+				<{/if}>
+			<{/if}>
+			<{if $tablec2[i].icao!="----"}>
+				<a href="?FUNCT=AIRPORT&ICAO=<{$tablec2[i].icao}>"><{$tablec2[i].icao}></a>
+			<{else}><{$tablec2[i].icao}>
+			<{/if}>
+		</td>
+		<td><{$tablec2[i].icao_name}></td>
+		<td><{$tablec2[i].count}></td>
+	</tr>
+<{/if}>
+<{assign var=val value=$val+2}>
+<{assign var=val2 value=$val2+2}>
+<{/section}>
+</table>
+
+<table id="arrivallist">
+<tr>
+	<th colspan=8>Arrival airports <a href="#headerWrap">[TOP &uarr;]</a></th>
+</tr>
+<tr>
+	<th>#</th>
+	<th>ICAO</th>
+	<th>Name</th>
+	<th>Count</th>
+	<th>#</th>
+	<th>ICAO</th>
+	<th>Name</th>
+	<th>Count</th>
+</tr>
+<{assign var=val value=1}>
+<{assign var=val2 value=2}>
+<{section name=i loop=$tabled}>
+<{if $val < 100}>
+	<tr>
+		<th><{$val}></th>
+		<td>
+			<{if $tabled[i].country!=null}>
+				<img src="icons/country-small/<{$tabled[i].country}>.png"  height="14" />
+			<{else}>
+				<{if $tabled[i].icao!=null}>
+					<img src="icons/country-small/unk.png"  height="14" />
+				<{/if}>
+			<{/if}>
+			<{if $tabled[i].icao!="----"}>
+				<a href="?FUNCT=AIRPORT&ICAO=<{$tabled[i].icao}>"><{$tabled[i].icao}></a>
+			<{else}><{$tabled[i].icao}>
+			<{/if}>
+		</td>
+		<td><{$tabled[i].icao_name}></td>
+		<td><{$tabled[i].count}></td>
+		<th>
+			<{if $tabled2[i].count!=null}>
+			<{$val2}>
+			<{/if}>
+		</th>
+		<td>
+			<{if $tabled2[i].country!=null}>
+				<img src="icons/country-small/<{$tabled2[i].country}>.png"  height="14" />
+			<{else}>
+				<{if $tabled2[i].icao!=null}>
+					<img src="icons/country-small/unk.png"  height="14" />
+				<{/if}>
+			<{/if}>
+			<{if $tabled2[i].icao!="----"}>
+				<a href="?FUNCT=AIRPORT&ICAO=<{$tabled2[i].icao}>"><{$tabled2[i].icao}></a>
+			<{else}><{$tabled2[i].icao}>
+			<{/if}>
+		</td>
+		<td><{$tabled2[i].icao_name}></td>
+		<td><{$tabled2[i].count}></td>
+	</tr>
+<{/if}>
+<{assign var=val value=$val+2}>
+<{assign var=val2 value=$val2+2}>
+<{/section}>
+</table>
+
+<p></p>
+
+<H1 id="flightslist">Detailed flight log of <a href="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>"><{$callsign}></a> <{if $archive == 1}>(Click <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>">here</a> for current data)<{else}>(Click <A HREF="?FUNCT=FLIGHTS&ARCHIVE=TRUE&CALLSIGN=<{$callsign}>">here</a> for flights on or before <{$archivedate[0]}>)<{/if}> <a href="#headerWrap">[TOP &uarr;]</a></H1>
+
+<table>
+<tr>
+	<td align="left" colspan=3>
+		<{if $page > 1 }>
+			<A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}><{if $archive == 1}>&ARCHIVE=TRUE<{else}><{/if}>&PAGE=<{$page-1}>#flightslist">&lt;&lt;&lt;Page <{$page-1}></a>
+		<{else}>
+			&nbsp;
+		<{/if}>
+	</td>
+	<td align="center" colspan=3>
+	<{if $pages > 1 }>
+		<form name="page" action="?#flightslist" method="GET">		  
+		  <input type="hidden" NAME="FUNCT" VALUE="FLIGHTS" />
+		  <input type="hidden" NAME="CALLSIGN" VALUE="<{$callsign}>" />
+		  <{if $archive == 1}><input type="hidden" NAME="ARCHIVE" VALUE="TRUE" /><{else}><{/if}>
+		  Go to page: <input type="text" NAME="PAGE" size="5"/> of <{$pages}>
+		  <input type="submit" NAME="submit" VALUE="Go" />
+		</form>
+		<{/if}>
+	</td>
+	<td align="right" colspan=4>
+		<{if $page < $pages }>
+			<A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}><{if $archive == 1}>&ARCHIVE=TRUE<{else}><{/if}>&PAGE=<{$page+1}>#flightslist">Page <{$page+1}>&gt;&gt;&gt;</a>
+		<{else}>
+			&nbsp;
+		<{/if}>
+	</td>
+</tr>
+<tr>
+	<th colspan=2>No.</th>
+	<th>Type</th>
+	<th>Start time</th>
+	<th>Airport</th>
+	<th>End time</th>
+	<th>Airport</th>
+	<th>Duration</th>
+	<th>Effective flight time</th>
+	<th>wpts</th>
+</tr>
+
+  
+<{section name=j loop=$tableb}>
+
+
+<tr>
+	<{if $tableb[j].numwpts > 0}>
+		<td valign="center" align="left" BGCOLOR=#F0F0F0><A HREF="?FUNCT=KML&FLIGHTID=<{$tableb[j].id}>"><img height=16 border=0 src="<{$xoops_url}>/modules/fgtracker/icons/ge32.gif"></a></td>
+		<td valign="center" align="right" BGCOLOR=#F0F0F0><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$tableb[j].id}>"><{$tableb[j].row}>.</a></td>
+	<{else}>
+		<td align="left" BGCOLOR=#F0F0F0><{if $xoops_isadmin}><{$tableb[j].id}><{else}><{/if}></td>
+		<td align="right" BGCOLOR=#F0F0F0><{$tableb[j].row}>.</td>
+	<{/if}>
+	<td align="left" BGCOLOR=#F0F0F0><{$tableb[j].model}></td>
+	<td align="left" BGCOLOR=#F0F0F0><{$tableb[j].start_time}></td>
+	<td align="left" BGCOLOR=#F0F0F0>
+		<{if $tableb[j].start_country!=null}>
+			<img src="icons/country-small/<{$tableb[j].start_country}>.png"  height="14" />
+		<{else}>
+			<{if $tableb[j].start_icao!=null}>
+				<img src="icons/country-small/unk.png"  height="14" />
+			<{/if}>
+		<{/if}>
+		<{if $tableb[j].start_icao!="----"}>
+			<a href="?FUNCT=AIRPORT&ICAO=<{$tableb[j].start_icao}>"><{$tableb[j].start_icao}></a>
+		<{else}>
+			<{$tableb[j].start_icao}>
+		<{/if}>
+	</td>
+	<td align="left" BGCOLOR=#F0F0F0><{$tableb[j].end_time}></td>
+	<td align="left" BGCOLOR=#F0F0F0>
+		<{if $tableb[j].end_country!=null}>
+			<img src="icons/country-small/<{$tableb[j].end_country}>.png"  height="14" />
+		<{else}>
+			<{if $tableb[j].end_icao!=null}>
+				<img src="icons/country-small/unk.png"  height="14" />
+			<{/if}>
+		<{/if}>
+		<{if $tableb[j].end_icao!="----"}>
+			<a href="?FUNCT=AIRPORT&ICAO=<{$tableb[j].end_icao}>"><{$tableb[j].end_icao}></a>
+		<{else}>
+			<{$tableb[j].end_icao}>
+		<{/if}>
+	</td>
+	<td align="right" BGCOLOR=#F0F0F0><{$tableb[j].duration}></td>
+	<td align="right" BGCOLOR=#F0F0F0><{$tableb[j].effective_flight_time}></td>
+	<td align="right" BGCOLOR=#F0F0F0><{$tableb[j].numwpts}></td>
+</tr>
+
+<{/section}>
+
+<tr><td align="left" colspan=3>
+	<{if $page > 1 }>
+		<A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}><{if $archive == 1}>&ARCHIVE=TRUE<{else}><{/if}>&PAGE=<{$page-1}>#flightslist">&lt;&lt;&lt;Page <{$page-1}></a>
+	<{else}>
+		&nbsp;
+	<{/if}>
+</td>
+<td align="right" colspan=7>
+	<{if $page < $pages }>
+		<A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}><{if $archive == 1}>&ARCHIVE=TRUE<{else}><{/if}>&PAGE=<{$page+1}>#flightslist">Page <{$page+1}>&gt;&gt;&gt;</a>
+	<{else}>
+		&nbsp;
+	<{/if}>
+</td></tr>
+
+</TABLE>
+<p></p>
+<h1 id="alterlog">Recent data changes (top 100 by time descent) <a href="#headerWrap">[TOP &uarr;]</a></h1>
+<table>
+<tr>
+	<th>#</th>
+	<th>Time</th>
+	<th>Action</th>
+	<th>Modified by</th>
+	<th>Extra note</th>
+</tr>
+<{assign var=val value=1}>
+<{section name=i loop=$tablee}>
+<{if $val < 101}>
+	<tr>
+		<th><{$val}></th>
+		<td><{$tablee[i].time}></td>
+		<td><{$tablee[i].action}></td>
+		<td><{$tablee[i].operating_user}></td>
+		<td><{$tablee[i].comments}></td>
+	</tr>
+<{/if}>
+<{assign var=val value=$val+1}>
+<{/section}>
+</table>
+</CENTER>
+

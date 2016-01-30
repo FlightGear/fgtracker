@@ -1,0 +1,439 @@
+<?
+///////////////////////////////////////////////////////////////////////
+// DIRECT_PLAN
+///////////////////////////////////////////////////////////////////////
+function direct_plan($conn,$departure,$deprwy,$arrival,$arrrwy)
+{
+  global $xoopsTpl,$M2NM,$INF;
+
+
+  $res=pg_query($conn,"SELECT a.icao||'/'||r.runway AS name, r.latitude AS lat, r.longitude AS lon FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$departure' AND r.runway LIKE '$deprwy%'");
+
+  $departure=pg_result($res,0,'name');
+  $lat=pg_result($res,0,'lat');
+  $lon=pg_result($res,0,'lon');
+
+  pg_free_result($res);
+
+  $deplat=sprintf("%8.5f",$lat);
+  $deplon=sprintf("%8.5f",$lon);
+
+    
+  $res=pg_query($conn,"SELECT a.icao||'/'||r.runway AS name, r.latitude AS lat, r.longitude AS lon FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$arrival' AND r.runway LIKE '$arrrwy%'");
+
+  $arrival_name=pg_result($res,0,'name');
+  $lat=pg_result($res,0,'lat');
+  $lon=pg_result($res,0,'lon');
+
+  pg_free_result($res);
+
+
+  $arrlat=sprintf("%8.5f",$lat);
+  $arrlon=sprintf("%8.5f",$lon);
+
+    
+  $xoopsTpl->assign('departure',$departure);
+  $xoopsTpl->assign('arrival',$arrival_name);
+  
+
+  $xoopsTpl->assign('deplat',$deplat);
+  $xoopsTpl->assign('deplon',$deplon);
+  $xoopsTpl->assign('arrlat',$arrlat);
+  $xoopsTpl->assign('arrlon',$arrlon);
+
+
+  $res=pg_query($conn,"select type,freq,ilt,name,latitude,longitude from navaids where type in (2,3) and 12756.276*asin(sqrt(pow(sin((pi() / 180)*($arrlat-latitude)/2),2) + cos((pi() / 180)*$arrlat)*cos((pi() / 180)*latitude)*pow(sin((pi() /180)*($arrlon-longitude)/2),2)))<20;");
+  $nr=pg_num_rows($res);
+  for($i=0;$i<$nr;$i++)
+  {
+	$arrnavaid[lat]=pg_result($res,$i,'latitude');
+	$arrnavaid[lon]=pg_result($res,$i,'longitude');
+	$arrnavaid[type]=pg_result($res,$i,'type');
+	$arrnavaid[name]=pg_result($res,$i,'name');
+	$arrnavaid[freq]=pg_result($res,$i,'freq');
+	$arrnavaid[ilt]=pg_result($res,$i,'ilt');
+        $arrnavaid[dist]=sprintf("%5.0f",llll2dist($arrnavaid[lat],$arrnavaid[lon],$arrlat,$arrlon)*$M2NM);
+        $arrnavaid[dir]=sprintf("%5.0f",llll2dir($arrlat,$arrlon,$arrnavaid[lat],$arrnavaid[lon]));
+        switch ($arrnavaid[type])
+        {
+            case 2:
+                    $arrnavaid[type]='NDB';
+                    break;
+            case 3:
+                    $arrnavaid[type]=substr($arrnavaid[name],strpos($arrnavaid[name],'VOR'));
+                    break;
+         }
+
+	$xoopsTpl->append('arrnavaids', $arrnavaid);
+  }
+  pg_free_result($res);
+
+  
+  $res=pg_query($conn,"SELECT r.llz_name AS llz_name, r.llz_freq AS llz_freq, r.llz_ilt AS llz_ilt FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$arrival' and r.llz_freq>0");
+
+  $nr=pg_num_rows($res);
+  for($i=0;$i<$nr;$i++)
+  {
+	$llz[name]=pg_result($res,$i,'llz_name');
+	$llz[freq]=pg_result($res,$i,'llz_freq');
+	$llz[ilt]=pg_result($res,$i,'llz_ilt');
+
+	$xoopsTpl->append('llz', $llz);
+  }
+  pg_free_result($res);
+
+  $direction=llll2dir($deplat,$deplon,$arrlat,$arrlon);
+
+  $direction=round($direction);
+  $xoopsTpl->assign('direction',$direction);
+
+  $distance=llll2dist($deplat,$deplon,$arrlat,$arrlon);
+  $distance=sprintf("%5.0f nm",$distance*$M2NM);
+  $routedist=$distance;
+  $xoopsTpl->assign('distance',$distance);
+  $xoopsTpl->assign('routedist',$routedist);
+
+  $navaids[0][ilt]=$departure;
+  $navaids[0][lat]=$deplat;
+  $navaids[0][lon]=$deplon;
+  $navaids[0][type]="departure";
+  $navaids[0][freq]="";
+
+  $navaids[1][ilt]=$arrival_name;
+  $navaids[1][lat]=$arrlat;
+  $navaids[1][lon]=$arrlon;
+  $navaids[1][type]="arrival";
+  $navaids[1][freq]="";
+
+
+  $clat=0;
+  $clon=0;
+
+  $x=0;
+  foreach ( array(0,1) as $step)
+  {
+     $wpt[$x][ilt]=$navaids[$step][ilt];
+     $wpt[$x][lat]=$navaids[$step][lat];
+     $wpt[$x][lon]=$navaids[$step][lon];
+     $wpt[$x][type]=$navaids[$step][type];
+     $wpt[$x][freq]=$navaids[$step][freq];
+
+     $clat+=$navaids[$step][lat];
+     $clon+=$navaids[$step][lon];
+     
+     if ($x>0)
+     {
+       $wpt[$x][dist]=sprintf("%5.0f",llll2dist($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon])*$M2NM);
+       $wpt[$x][dir]=sprintf("%5.0f",llll2dir($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon]));
+     } else
+     {
+       $wpt[$x][dist]="N/A";
+       $wpt[$x][dir]="N/A";
+     }
+     $xoopsTpl->append('flightplan', $wpt[$x]);
+     $x++;
+  }
+
+  if ($x>0)
+  {
+    $clat/=$x;
+    $clon/=$x;
+  }
+
+  $xoopsTpl->assign('centerlat',$clat);
+  $xoopsTpl->assign('centerlon',$clon);
+
+}
+
+///////////////////////////////////////////////////////////////////////
+// NAVAID_PLAN
+///////////////////////////////////////////////////////////////////////
+function navaid_plan($conn,$departure,$deprwy,$arrival,$arrrwy,$vor,$ndb,$fix,$mind,$maxd)
+{
+  global $xoopsTpl,$M2NM,$INF;
+
+  // New section
+  $ntyplist="-121";
+
+  if ($vor=="on")
+  {
+    $ntyplist.=",3";
+  }
+  if ($ndb=="on")
+  {
+    $ntyplist.=",2";
+  }
+  if ($fix=="on")
+  {
+    $ntyplist.=",999";
+  }
+
+
+  $res=pg_query($conn,"SELECT r.runway FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$departure' AND r.runway LIKE '$deprwy%'");
+  $deprwy=pg_result($res,0,0);
+  pg_free_result($res);
+
+  $res=pg_query($conn,"SELECT r.runway FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$arrival' AND r.runway LIKE '$arrrwy%'");
+  $arrrwy=pg_result($res,0,0);
+  pg_free_result($res);
+
+  $resx=pg_query($conn,"SELECT id,status FROM routes WHERE dep_airport_id=(SELECT id FROM airports WHERE icao='$departure') and dep_runway='$deprwy' and arr_airport_id=(SELECT id FROM airports WHERE icao='$arrival') and arr_runway='$arrrwy' and types='$ntyplist' and mind>=$mind and maxd<=$maxd");
+
+  $nr=pg_num_rows($resx);
+  pg_free_result($resx);
+
+  if ($nr==0)
+  {
+    $resy=pg_query($conn,"INSERT INTO routes (status,dep_airport_id,dep_runway,arr_airport_id,arr_runway,types,mind,maxd,plan_date) VALUES ('REQUEST',(SELECT id FROM airports WHERE icao='$departure'),'$deprwy',(SELECT id FROM airports WHERE icao='$arrival'),'$arrrwy','$ntyplist',$mind,$maxd,'now');");
+  }
+
+  $nr=0;
+  $counter=300;
+  while ($nr==0 && $counter>0)
+  {
+    $counter--;
+    $resx=pg_query($conn,"SELECT id,status FROM routes WHERE dep_airport_id=(SELECT id FROM airports WHERE icao='$departure') and dep_runway='$deprwy' and arr_airport_id=(SELECT id FROM airports WHERE icao='$arrival') and arr_runway='$arrrwy' and types='$ntyplist' and mind>=$mind and maxd<=$maxd and status='DONE'");
+    $nr=pg_num_rows($resx);
+    if ($nr==0) 
+    {
+      pg_free_result($resx);
+      sleep(1);
+    }
+  }
+
+  $rid=pg_result($resx,0,'id');
+
+  pg_free_result($resx);
+
+  // End new section
+
+
+  $res=pg_query($conn,"SELECT a.icao||'/'||r.runway AS name, r.latitude AS lat, r.longitude AS lon FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$departure' AND r.runway LIKE '$deprwy%'");
+
+  $departure=pg_result($res,0,'name');
+  $lat=pg_result($res,0,'lat');
+  $lon=pg_result($res,0,'lon');
+
+  pg_free_result($res);
+
+  $deplat=sprintf("%8.5f",$lat);
+  $deplon=sprintf("%8.5f",$lon);
+    
+  $res=pg_query($conn,"SELECT a.icao||'/'||r.runway AS name, r.latitude AS lat, r.longitude AS lon FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$arrival' AND r.runway LIKE '$arrrwy%'");
+
+  $arrival_name=pg_result($res,0,'name');
+  $lat=pg_result($res,0,'lat');
+  $lon=pg_result($res,0,'lon');
+
+  pg_free_result($res);
+
+  $arrlat=sprintf("%8.5f",$lat);
+  $arrlon=sprintf("%8.5f",$lon);
+    
+  $xoopsTpl->assign('departure',$departure);
+  $xoopsTpl->assign('arrival',$arrival_name);
+  
+
+  $xoopsTpl->assign('deplat',$deplat);
+  $xoopsTpl->assign('deplon',$deplon);
+  $xoopsTpl->assign('arrlat',$arrlat);
+  $xoopsTpl->assign('arrlon',$arrlon);
+
+  $direction=llll2dir($deplat,$deplon,$arrlat,$arrlon);
+  $direction=round($direction);
+  $xoopsTpl->assign('direction',$direction);
+
+  $distance=llll2dist($deplat,$deplon,$arrlat,$arrlon);
+  $distance2=sprintf("%5.0f nm",$distance*$M2NM);
+  $xoopsTpl->assign('distance',$distance2);
+  $distance_nm2=2*$distance*$M2NM;
+
+  $res=pg_query($conn,"select type,freq,ilt,name,latitude,longitude from navaids where type in (2,3) and 12756.276*asin(sqrt(pow(sin((pi() / 180)*($arrlat-latitude)/2),2) + cos((pi() / 180)*$arrlat)*cos((pi() / 180)*latitude)*pow(sin((pi() /180)*($arrlon-longitude)/2),2)))<20;");
+  $nr=pg_num_rows($res);
+  for($i=0;$i<$nr;$i++)
+  {
+	$arrnavaid[lat]=pg_result($res,$i,'latitude');
+	$arrnavaid[lon]=pg_result($res,$i,'longitude');
+	$arrnavaid[type]=pg_result($res,$i,'type');
+	$arrnavaid[name]=pg_result($res,$i,'name');
+	$arrnavaid[freq]=pg_result($res,$i,'freq');
+	$arrnavaid[ilt]=pg_result($res,$i,'ilt');
+        $arrnavaid[dist]=sprintf("%5.0f",llll2dist($arrnavaid[lat],$arrnavaid[lon],$arrlat,$arrlon)*$M2NM);
+        $arrnavaid[dir]=sprintf("%5.0f",llll2dir($arrlat,$arrlon,$arrnavaid[lat],$arrnavaid[lon]));
+
+        switch ($arrnavaid[type])
+        {
+            case 2:
+                    $arrnavaid[type]='NDB';
+                    break;
+            case 3:
+                    $arrnavaid[type]=substr($arrnavaid[name],strpos($arrnavaid[name],'VOR'));
+                    break;
+         }
+
+	$xoopsTpl->append('arrnavaids', $arrnavaid);
+  }
+  pg_free_result($res);
+
+  $query="	select
+			type,freq,ilt,name,latitude,longitude
+		from
+			navaids
+		where
+			type in ($ntyplist)
+	";
+
+  $res=pg_query($conn,$query);
+
+  $nr=pg_num_rows($res);
+  for($i=0;$i<$nr;$i++)
+  {
+	
+	$scopenavaid[lat]=pg_result($res,$i,'latitude');
+	$scopenavaid[lon]=pg_result($res,$i,'longitude');
+	$scopenavaid[type]=pg_result($res,$i,'type');
+	$scopenavaid[name]=pg_result($res,$i,'name');
+	$scopenavaid[freq]=pg_result($res,$i,'freq');
+	$scopenavaid[ilt]=pg_result($res,$i,'ilt');
+        $scopenavaid[dist]=sprintf("%5.0f",llll2dist($scopenavaid[lat],$scopenavaid[lon],$arrlat,$arrlon)*$M2NM);
+        $scopenavaid[dir]=sprintf("%5.0f",llll2dir($scopelat,$arrlon,$scopenavaid[lat],$scopenavaid[lon]));
+
+        switch ($scopenavaid[type])
+        {
+            case 2:
+                    $scopenavaid[type]='NDB';
+                    break;
+            case 3:
+                    $scopenavaid[type]=substr($scopenavaid[name],strpos($scopenavaid[name],'VOR'));
+                    break;
+            case 999:
+                    $scopenavaid[type]='FIX';
+                    break;
+         }
+	
+	 if (llll2dist($scopenavaid[lat],$scopenavaid[lon],$arrlat,$arrlon)*$M2NM+llll2dist($scopenavaid[lat],$scopenavaid[lon],$deplat,$deplon)*$M2NM<$distance_nm2)
+	 {
+	   $xoopsTpl->append('scopenavaids', $scopenavaid);
+	 }
+  }
+  pg_free_result($res);
+  
+  $xoopsTpl->assign('plotscope',0);
+
+  $res=pg_query($conn,"SELECT r.llz_name AS llz_name, r.llz_freq AS llz_freq, r.llz_ilt AS llz_ilt FROM runways AS r INNER JOIN airports AS a ON (a.id=r.airport_id) WHERE a.icao='$arrival' and r.llz_freq>0");
+  
+  $nr=pg_num_rows($res);
+
+  for($i=0;$i<$nr;$i++)
+  {
+	$llz[name]=pg_result($res,$i,'llz_name');
+	$llz[freq]=pg_result($res,$i,'llz_freq');
+	$llz[ilt]=pg_result($res,$i,'llz_ilt');
+
+	$xoopsTpl->append('llz', $llz);
+  }
+  pg_free_result($res);
+
+
+  $navaids[0][ilt]=$departure;
+  $navaids[0][lat]=$deplat;
+  $navaids[0][lon]=$deplon;
+  $navaids[0][type]="departure";
+  $navaids[0][freq]="";
+
+  $navaids[1][ilt]=$arrival_name;
+  $navaids[1][lat]=$arrlat;
+  $navaids[1][lon]=$arrlon;
+  $navaids[1][type]="arrival";
+  $navaids[1][freq]="";
+
+
+  $maxgap=2000;
+ 
+  $x=0;
+  $resx=pg_query($conn,"SELECT
+				r.seq AS seq,
+				n.ilt AS ilt,
+				n.latitude AS lat,
+				n.longitude AS lon,
+				n.type AS type,
+				n.freq AS freq,
+				n.name AS name
+			FROM route_points AS r
+			LEFT OUTER JOIN navaids AS n ON (r.navaid_id=n.id)
+			WHERE route_id=$rid
+			ORDER BY r.seq;");
+
+  $nx=pg_num_rows($resx);
+
+  $wpt[0][ilt]=$navaids[0][ilt];
+  $wpt[0][lat]=$navaids[0][lat];
+  $wpt[0][lon]=$navaids[0][lon];
+  $wpt[0][type]=$navaids[0][type];
+  $wpt[0][freq]=$navaids[0][freq];
+
+  $xoopsTpl->append('flightplan', $wpt[0]);
+
+  $routedist=0;
+
+  $x=1;
+  for($i=0;$i<$nx;$i++)
+  {
+     $wpt[$x][ilt]=pg_result($resx,$i,'ilt');
+     $wpt[$x][lat]=pg_result($resx,$i,'lat');
+     $wpt[$x][lon]=pg_result($resx,$i,'lon');
+     $wpt[$x][type]=pg_result($resx,$i,'type');
+     $wpt[$x][freq]=pg_result($resx,$i,'freq');
+     $wpt[$x][name]=pg_result($resx,$i,'name');
+
+     switch ($wpt[$x][type])
+     {
+        case 2:
+                $wpt[$x][type]='NDB';
+                break;
+        case 3:
+                $wpt[$x][type]=substr($wpt[$x][name],strpos($wpt[$x][name],'VOR'));
+                break;
+        case 999:
+                $wpt[$x][type]='FIX';
+                break;
+     }
+
+     if ($x>0)
+     {
+       $wpt[$x][dist]=sprintf("%5.0f nm",llll2dist($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon])*$M2NM);
+       $wpt[$x][dir]=sprintf("%5.0f",llll2dir($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon]));
+       $routedist+=llll2dist($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon])*$M2NM;
+     } else
+     {
+       $wpt[$x][dist]="N/A";
+       $wpt[$x][dir]="N/A";
+     }
+     $xoopsTpl->append('flightplan', $wpt[$x]);
+     $x++;
+  }
+  $wpt[$x][ilt]=$navaids[1][ilt];
+  $wpt[$x][lat]=$navaids[1][lat];
+  $wpt[$x][lon]=$navaids[1][lon];
+  $wpt[$x][type]=$navaids[1][type];
+  $wpt[$x][freq]=$navaids[1][freq];
+  $wpt[$x][dist]=sprintf("%5.0f nm",llll2dist($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon])*$M2NM);
+  $wpt[$x][dir]=sprintf("%5.0f",llll2dir($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon]));
+
+  $routedist+=llll2dist($wpt[$x-1][lat],$wpt[$x-1][lon],$wpt[$x][lat],$wpt[$x][lon])*$M2NM;
+
+  $routedist=sprintf("%5.0f nm",$routedist);
+  $xoopsTpl->assign('routedist',$routedist);
+
+  $xoopsTpl->append('flightplan', $wpt[$x]);
+  $x++;
+
+  $clat=$navaids[0][lat];
+  $clon=$navaids[0][lon];
+
+
+  $xoopsTpl->assign('centerlat',$clat);
+  $xoopsTpl->assign('centerlon',$clon);
+  $xoopsTpl->assign('maxgap',$maxgap);
+}
+

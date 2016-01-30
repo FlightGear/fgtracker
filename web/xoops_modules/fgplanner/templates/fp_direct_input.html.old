@@ -1,0 +1,42 @@
+<FORM name=direct ACTION="" METHOD=POST>
+<INPUT TYPE=HIDDEN NAME=FUNCT VALUE="PLAN">
+
+<CENTER>
+<TABLE style="width: 500px;">
+	<TR>
+		<TD><B>Departure apt/rwy:</B></TD>
+		<TD><INPUT TYPE="TEXT" SIZE=10 NAME=DEP>/<INPUT TYPE="TEXT" SIZE=3 NAME=DEPRWY></TD>
+	</TR>
+	<TR>
+		<TD ALIGN=RIGHT COLSPAN=2>(eg.: KSFO/28L EDDF/18x EHAM/36C)</TD>
+	</TR>
+	<TR>
+		<TD><B>Arrival apt/rwy:</B></TD>
+		<TD><INPUT TYPE="TEXT" SIZE=10 NAME=ARR>/<INPUT TYPE="TEXT" SIZE=3 NAME=ARRRWY></TD>
+	</TR>
+	<TR>
+		<TD ALIGN=RIGHT COLSPAN=2>(eg.: KSFO/28L EDDF/18x EHAM/36C)</TD>
+	</TR>
+	<TR>
+		<TD><B>Mode:</B></TD>
+		<TD><SELECT NAME=MODE><OPTION VALUE=DIRECT>Direct flight</OPTION><OPTION SELECTED VALUE=NAVAID>Via navaids</OPTION></SELECT></TD>
+	</TR>
+	<TR>
+		<TD><B>In flightplan include:</B></TD>
+		<TD><INPUT TYPE=CHECKBOX NAME=VOR CHECKED>VORs<BR><INPUT TYPE=CHECKBOX NAME=NDB>NDBs<BR><INPUT TYPE=CHECKBOX NAME=FIX>FIXes</TD>
+	</TR>
+	<TR>
+		<TD><B>Preferred minimal distance between wpts.:</B></TD>
+		<TD><INPUT TYPE="TEXT" SIZE=4 NAME=WPTMIN VALUE=40> nm</TD>
+	</TR>
+	<TR>
+		<TD><B>Preferred maximal distance between wpts.:</B></TD>
+		<TD><INPUT TYPE="TEXT" SIZE=4 NAME=WPTMAX VALUE=100> nm</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=2 ALIGN=CENTER><INPUT TYPE=SUBMIT VALUE="Plan!"></TD>
+	</TR>
+</TABLE>
+</CENTER>
+</FORM>
+    

@@ -1,0 +1,251 @@
+<script src="http://maps.google.com/maps?file=api&v=3.2&key=ABQIAAAACvwVqYJ3vc9cjaUKNn-suhTEx03WsD3x7oD07A_KLQwoL7xQmxTyVoMph4vO4XK7QUSf0HtrgM1zAw" type="text/javascript"></script>
+<!--<script src="http://maps.google.com/maps?file=api&v=3&key=ABQIAAAAOs9EqpXiZ8kbwGU2MQ-C0BR83IkE4rgqu8Zgs4mxctWP2g8okhROvAmYtO_os_d5s6DxB4rF_fc4Jw" type="text/javascript"></script>-->
+<CENTER>
+<H1>Flight plan</H1>
+<H2><FONT COLOR=RED>NOT FOR OPERATIONAL USE! FOR SIMULATION ONLY!</FONT></H2>
+<TABLE style="width: 600px;">
+	<TR>
+		<TD ALIGN=LEFT><B>Departure:</B></TD>
+		<TD ALIGN=LEFT><{$departure}> (<{$deplat}>;<{$deplon}>)</TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Arrival:</B></TD>
+		<TD ALIGN=LEFT><{$arrival}> (<{$arrlat}>;<{$arrlon}>)</TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Direction:</B></TD>
+		<TD ALIGN=LEFT><{$direction}></TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Direct distance:</B></TD>
+		<TD ALIGN=LEFT><{$distance}></TD>
+	</TR>
+	<TR>
+		<TD ALIGN=LEFT><B>Route distance:</B></TD>
+		<TD ALIGN=LEFT><{$routedist}></TD>
+	</TR>
+</TABLE>
+<H2>Plan details:</H2>
+<TABLE style="width: 600px;">
+<TR><TH>Waypoint</TH><TH>Type</TH><TH>Freq.</TH><TH>Distance</TH><TH>True Track</TH></TR>
+<{section name=i loop=$flightplan}>
+<TR><TD ALIGN=LEFT><{$flightplan[i].ilt}> / <{$flightplan[i].name}></TD><TD ALIGN=LEFT><{$flightplan[i].type}></TD><TD ALIGN=RIGHT><{$flightplan[i].freq}></TD><TD ALIGN=RIGHT><{$flightplan[i].dist}>&nbsp;</TD><TD ALIGN=RIGHT><{$flightplan[i].dir}></TD></TR>
+<{/section}>
+<TR><TD ALIGN=LEFT style="padding-left: 20px;" COLSPAN=5>
+<TABLE BORDER=0 CELLPADDING=0 style="width: 450px; padding: 0; spacing: 0;">
+<TR><TH ALIGN=LEFT>Name</TH><TH ALIGN=LEFT>Freq</TH><TH ALIGN=LEFT>ILT</TH><TH ALIGN=LEFT>Distance</TH><TH>Direction</TH></TR>
+<{section name=i loop=$llz}>
+<TR><TD ALIGN=LEFT><{$llz[i].name}></TD><TD ALIGN=LEFT><{$llz[i].freq}></TD><TD><{$llz[i].ilt}></TD><TD>&nbsp;</TD><TD>&nbsp;</TD></TR>
+<{/section}>
+<{section name=i loop=$arrnavaids}>
+<TR><TD ALIGN=LEFT><{$arrnavaids[i].name}></TD><TD ALIGN=LEFT><{$arrnavaids[i].freq}></TD><TD><{$arrnavaids[i].ilt}></TD><TD align=right><{$arrnavaids[i].dist}>&nbsp;nm</TD><TD align=right><{$arrnavaids[i].dir}></TD></TR>
+<{/section}>
+</TABLE>
+</TD></TR>
+</TABLE>
+
+
+<div id="map" style="width: 640px; height: 480px"></div>
+
+<script type="text/javascript">
+
+// Creates a marker at the given point with the given number label
+
+var points=[];
+var prevlat=1000;
+var prevlon=1000;
+
+function intermediate_point(lat1,lon1,lat2,lon2,frac,dist)
+{
+        with (Math)
+        {
+        lat1/=180/PI;
+        lon1/=180/PI;
+        lat2/=180/PI;
+        lon2/=180/PI;
+        A=sin((1-frac)*dist)/sin(dist);
+        B=sin(frac*dist)/sin(dist);
+        x = A*cos(lat1)*cos(lon1) +  B*cos(lat2)*cos(lon2);
+        y = A*cos(lat1)*sin(lon1) +  B*cos(lat2)*sin(lon2);
+        z = A*sin(lat1)           +  B*sin(lat2);
+        lat=(180 / PI)*atan2(z,sqrt(pow(x,2)+pow(y,2)));
+        lon=(180 / PI)*atan2(y,x);
+        }
+
+        var coords=[];
+        coords[0]=lat;
+        coords[1]=lon;
+        return(coords);
+}
+
+function dist(lat1,lon1,lat2,lon2)
+{
+  with (Math)
+  {
+     lat1/=180/PI;
+     lon1/=180/PI;
+     lat2/=180/PI;
+     lon2/=180/PI;
+
+     d=2*asin(sqrt(pow((sin((lat1-lat2)/2)),2) + 
+                 cos(lat1)*cos(lat2)*pow((sin((lon1-lon2)/2)),2)));
+  }
+  return(d);
+}
+
+function path(lat,lon)
+{
+  n=10.0;
+
+  d=dist(prevlat,prevlon,lat,lon);
+
+  if (prevlat!=1000 && prevlon!=1000)
+  {
+    for (i=1;i<=n;i++)
+    {
+      f=i/n;
+
+      c=intermediate_point(prevlat,prevlon,lat,lon,f,d)
+
+      points.push( new GLatLng(c[0],c[1]) );
+    }
+  }
+  else
+  {
+    points.push( new GLatLng(lat,lon) );
+  }
+
+  prevlat=lat;
+  prevlon=lon;
+  
+}
+
+function createMarker(point, icon, text) {
+  var marker = new GMarker(point,icon);
+  GEvent.addListener(marker, "click", function() {
+    marker.openInfoWindowHtml(text);
+  });
+  return marker;
+}
+
+
+var map = new GMap2(document.getElementById("map"));
+map.addControl(new GSmallMapControl());
+map.addControl(new GMapTypeControl());
+map.setCenter(new GLatLng(<{$centerlat}>,<{$centerlon}>), 5);
+
+// Add a polyline with five random points. Sort the points by
+// longitude so that the line does not intersect itself.
+
+// create the VOR & NDB icons
+var vor_icon = new GIcon();
+vor_icon.image = "http://fgfs.i-net.hu/modules/fgplanner/icons/VOR.gif";
+vor_icon.iconSize = new GSize(20, 20);
+vor_icon.iconAnchor = new GPoint(9, 9);
+vor_icon.infoWindowAnchor = new GPoint(15, 1);
+
+var vortac_icon = new GIcon();
+vortac_icon.image = "http://fgfs.i-net.hu/modules/fgplanner/icons/VORTAC.gif";
+vortac_icon.iconSize = new GSize(20, 20);
+vortac_icon.iconAnchor = new GPoint(9, 9);
+vortac_icon.infoWindowAnchor = new GPoint(15, 1);
+
+var vordme_icon = new GIcon();
+vordme_icon.image = "http://fgfs.i-net.hu/modules/fgplanner/icons/VOR-DME.gif";
+vordme_icon.iconSize = new GSize(20, 20);
+vordme_icon.iconAnchor = new GPoint(9, 9);
+vordme_icon.infoWindowAnchor = new GPoint(15, 1);
+
+var ndb_icon = new GIcon();
+ndb_icon.image = "http://fgfs.i-net.hu/modules/fgplanner/icons/NDB.gif";
+ndb_icon.iconSize = new GSize(20, 20);
+ndb_icon.iconAnchor = new GPoint(9, 9);
+ndb_icon.infoWindowAnchor = new GPoint(15, 1);
+
+var fix_icon = new GIcon();
+fix_icon.image = "http://fgfs.i-net.hu/modules/fgplanner/icons/FIX.gif";
+fix_icon.iconSize = new GSize(20, 20);
+fix_icon.iconAnchor = new GPoint(9, 9);
+fix_icon.infoWindowAnchor = new GPoint(15, 1);
+
+
+<{section name=i loop=$arrnavaids}>
+  <{if $arrnavaids[i].type eq "VOR"}>
+      map.addOverlay(createMarker(new GLatLng(<{$arrnavaids[i].lat}>,<{$arrnavaids[i].lon}>),vor_icon,"<B><{$arrnavaids[i].name}></B><BR><{$arrnavaids[i].freq}> <{$arrnavaids[i].ilt}><BR><font size=-3><{$arrnavaids[i].lat}><br><{$arrnavaids[i].lon}></font>"));
+  <{elseif $arrnavaids[i].type eq "VORTAC"}>
+      map.addOverlay(createMarker(new GLatLng(<{$arrnavaids[i].lat}>,<{$arrnavaids[i].lon}>),vortac_icon,"<B><{$arrnavaids[i].name}></B><BR><{$arrnavaids[i].freq}> <{$arrnavaids[i].ilt}><BR><font size=-3><{$arrnavaids[i].lat}><br><{$arrnavaids[i].lon}></font>"));
+  <{elseif $arrnavaids[i].type eq "VOR-DME"}>
+      map.addOverlay(createMarker(new GLatLng(<{$arrnavaids[i].lat}>,<{$arrnavaids[i].lon}>),vordme_icon,"<B><{$arrnavaids[i].name}></B><BR><{$arrnavaids[i].freq}> <{$arrnavaids[i].ilt}><BR><font size=-3><{$arrnavaids[i].lat}><br><{$arrnavaids[i].lon}></font>"));
+  <{elseif $arrnavaids[i].type eq "NDB"}>
+      map.addOverlay(createMarker(new GLatLng(<{$arrnavaids[i].lat}>,<{$arrnavaids[i].lon}>),ndb_icon,"<B><{$arrnavaids[i].name}></B><BR><{$arrnavaids[i].freq}> <{$arrnavaids[i].ilt}><BR><font size=-3><{$arrnavaids[i].lat}><br><{$arrnavaids[i].lon}></font>"));
+  <{elseif $arrnavaids[i].type eq "FIX"}>
+      map.addOverlay(createMarker(new GLatLng(<{$arrnavaids[i].lat}>,<{$arrnavaids[i].lon}>),fix_icon,"<B><{$arrnavaids[i].name}></B><BR><{$arrnavaids[i].freq}> <{$arrnavaids[i].ilt}><BR><font size=-3><{$arrnavaids[i].lat}><br><{$arrnavaids[i].lon}></font>"));
+  <{/if}>
+<{/section}>
+
+<{if $plotscope eq 1}>
+  <{section name=i loop=$scopenavaids}>
+    <{if $scopenavaids[i].type eq "VOR"}>
+        map.addOverlay(createMarker(new GLatLng(<{$scopenavaids[i].lat}>,<{$scopenavaids[i].lon}>),vor_icon,"<B><{$scopenavaids[i].name}></B><BR><{$scopenavaids[i].freq}> <{$scopenavaids[i].ilt}><BR><font size=-3><{$scopenavaids[i].lat}><br><{$scopenavaids[i].lon}></font>"));
+    <{elseif $scopenavaids[i].type eq "VORTAC"}>
+        map.addOverlay(createMarker(new GLatLng(<{$scopenavaids[i].lat}>,<{$scopenavaids[i].lon}>),vortac_icon,"<B><{$scopenavaids[i].name}></B><BR><{$scopenavaids[i].freq}> <{$scopenavaids[i].ilt}><BR><font size=-3><{$scopenavaids[i].lat}><br><{$scopenavaids[i].lon}></font>"));
+    <{elseif $scopenavaids[i].type eq "VOR-DME"}>
+        map.addOverlay(createMarker(new GLatLng(<{$scopenavaids[i].lat}>,<{$scopenavaids[i].lon}>),vordme_icon,"<B><{$scopenavaids[i].name}></B><BR><{$scopenavaids[i].freq}> <{$scopenavaids[i].ilt}><BR><font size=-3><{$scopenavaids[i].lat}><br><{$scopenavaids[i].lon}></font>"));
+    <{elseif $scopenavaids[i].type eq "NDB"}>
+        map.addOverlay(createMarker(new GLatLng(<{$scopenavaids[i].lat}>,<{$scopenavaids[i].lon}>),ndb_icon,"<B><{$scopenavaids[i].name}></B><BR><{$scopenavaids[i].freq}> <{$scopenavaids[i].ilt}><BR><font size=-3><{$scopenavaids[i].lat}><br><{$scopenavaids[i].lon}></font>"));
+    <{elseif $scopenavaids[i].type eq "FIX"}>
+        map.addOverlay(createMarker(new GLatLng(<{$scopenavaids[i].lat}>,<{$scopenavaids[i].lon}>),fix_icon,"<B><{$scopenavaids[i].name}></B><BR><{$scopenavaids[i].freq}> <{$scopenavaids[i].ilt}><BR><font size=-3><{$scopenavaids[i].lat}><br><{$scopenavaids[i].lon}></font>"));
+    <{/if}>
+  <{/section}>
+<{/if}>
+
+<{section name=i loop=$flightplan}>
+
+  path(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>);
+
+  <{if $flightplan[i].type eq "VOR"}>
+      map.addOverlay(createMarker(new GLatLng(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>),vor_icon,"<B><{$flightplan[i].name}></B><BR><{$flightplan[i].freq}> <{$flightplan[i].ilt}><BR><font size=-3><{$flightplan[i].lat}><br><{$flightplan[i].lon}></font>"));
+  <{elseif $flightplan[i].type eq "VORTAC"}>
+      map.addOverlay(createMarker(new GLatLng(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>),vortac_icon,"<B><{$flightplan[i].name}></B><BR><{$flightplan[i].freq}> <{$flightplan[i].ilt}><BR><font size=-3><{$flightplan[i].lat}><br><{$flightplan[i].lon}></font>"));
+  <{elseif $flightplan[i].type eq "VOR-DME"}>
+      map.addOverlay(createMarker(new GLatLng(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>),vordme_icon,"<B><{$flightplan[i].name}></B><BR><{$flightplan[i].freq}> <{$flightplan[i].ilt}><BR><font size=-3><{$flightplan[i].lat}><br><{$flightplan[i].lon}></font>"));
+  <{elseif $flightplan[i].type eq "NDB"}>
+      map.addOverlay(createMarker(new GLatLng(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>),ndb_icon,"<B><{$flightplan[i].name}></B><BR><{$flightplan[i].freq}> <{$flightplan[i].ilt}><BR><font size=-3><{$flightplan[i].lat}><br><{$flightplan[i].lon}></font>"));
+  <{elseif $flightplan[i].type eq "FIX"}>
+      map.addOverlay(createMarker(new GLatLng(<{$flightplan[i].lat}>,<{$flightplan[i].lon}>),fix_icon,"<B><{$flightplan[i].name}></B><BR><{$flightplan[i].freq}> <{$flightplan[i].ilt}><BR><font size=-3><{$flightplan[i].lat}><br><{$flightplan[i].lon}></font>"));
+  <{/if}>
+
+
+<{/section}>
+  map.addOverlay(new GPolyline(points,"#E000E0",5));
+
+<{if 0 }>
+<{section name=i loop=$navaids}>
+  map.addOverlay(createMarker(new GLatLng(<{$navaids[i].lat}>,<{$navaids[i].lon}>), "<B><{$navaids[i].name}></B><BR><{$navaids[i].freq}> <{$navaids[i].ilt}><BR><font size=-3><{$navaids[i].lat}><br><{$navaids[i].lon}></font>"));
+<{/section}>
+<{/if}>
+
+
+// create the 2 icons
+var dep_icon = new GIcon();
+dep_icon.image = "http://fgfs.i-net.hu/modules/fgplanner/icons/departure.gif";
+dep_icon.iconSize = new GSize(20, 20);
+dep_icon.iconAnchor = new GPoint(9, 20);
+dep_icon.infoWindowAnchor = new GPoint(15, 1);
+
+var arr_icon = new GIcon();
+arr_icon.image = "http://fgfs.i-net.hu/modules/fgplanner/icons/arrival.gif";
+arr_icon.iconSize = new GSize(20, 20);
+arr_icon.iconAnchor = new GPoint(9, 20);
+arr_icon.infoWindowAnchor = new GPoint(15, 1);
+
+// show the icons
+var point_dep = new GLatLng(<{$deplat}>,<{$deplon}>);
+var point_arr = new GLatLng(<{$arrlat}>,<{$arrlon}>);
+map.addOverlay(new GMarker(point_dep, dep_icon));
+map.addOverlay(new GMarker(point_arr, arr_icon));
+
+</script>
+
+</CENTER>
+    
