@@ -35,9 +35,10 @@ function get_nearest_airport($conn,$lat,$lon,$alt)
 			
 		}//exit;
 		if (pg_num_rows($res)==0)
-			return Array("----","Unknown",NULL,NULL);
+			return Array("----","Unknown",NULL,NULL,NULL);
 		$airport=pg_result($res,$target_row,'icao');
 		$airport_name=pg_result($res,$target_row,'name');
+		$airport_zone=pg_result($res,$target_row,'zone_name');
 		if(pg_result($res,$target_row,'country')=="--")
 		{
 			$airport_country=NULL;
@@ -49,7 +50,7 @@ function get_nearest_airport($conn,$lat,$lon,$alt)
 		}
 
 		pg_free_result($res);
-		return Array($airport,$airport_name,$airport_country,$airport_city);
+		return Array($airport,$airport_name,$airport_country,$airport_city,$airport_zone);
     } else return Array("----","Unknown",NULL,NULL);
 	
 }

@@ -35,13 +35,53 @@ function merge_flights($flightid, $nflightid,$username,$token,$usercomments)
 }
 
 ///////////////////////////////////////////////////////////////////////
+// REG_CALLSIGN (JSON_DB)
+///////////////////////////////////////////////////////////////////////
+function reg_callsign($callsign, $email, $grecaptcharesponse)
+{
+	global $xoopsTpl;
+	$success=true;
+	$ip=$_SERVER['REMOTE_ADDR'];
+	$xoopsTpl->assign('email',$email);
+	$xoopsTpl->assign('callsign',$callsign);
+	$xoopsTpl->assign('ip',$ip);
+	
+	/*send data to JSON_DB*/
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=regcallsign&callsign=".urlencode($callsign)."&email=".urlencode($email)."&ip=$ip&grecaptcharesponse=".urlencode($grecaptcharesponse)), true);
+	if($res['data']['ok']!==true)
+		$success=false;
+	
+	$xoopsTpl->assign('verified',$res['data']['msg']);
+	$xoopsTpl->assign('raw_json',print_r($res, true));
+	if($success===false)
+		$xoopsTpl->assign('message',"Failed in callsign registration. Please return and check your input. PM hazuki at flightgear forum if you have any difficuities or you think you faced a bug during registration process.");
+	else
+		$xoopsTpl->assign('message',"Callsign registration succeed. Registration is only completed after you click the confirmation link that sends to your email ($email). Callsign '$callsign' is now being tracked for 72 hours until registration is completed.");
+}
+
+function reg_callsign2($callsign, $token)
+{
+	global $xoopsTpl;
+	
+	$xoopsTpl->assign('callsign',$callsign);
+	/*send data to JSON_DB*/
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=regcallsign2&callsign=".urlencode($callsign)."&token=".urlencode($token)), true);
+	$xoopsTpl->assign('sysmsg',$res['data']['msg']);
+	if($res['data']['ok']!==true)
+		$xoopsTpl->assign('message',"Failed in email verification. Please go to <a href=\"?FUNCT=FLIGHTS&CALLSIGN=$callsign\">flights report</a> and check if email/callsign is already verified (i.e. registration status is 'active'). PM hazuki at flightgear forum if you have any difficuities or you think you faced a bug during verification process.");
+	else
+		$xoopsTpl->assign('message',"Email verified. Callsign '$callsign' is now being tracked.");
+}
+
+
+///////////////////////////////////////////////////////////////////////
 // SELECT_CALLSIGN (JSON_DB)
 ///////////////////////////////////////////////////////////////////////
   function select_callsign()
   {
     global $xoopsTpl;
 
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist"), true);
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=sizeof($res["data"]["pilot"]);
 
     for($i=0;$i<ceil($nr/2.0);$i++)
@@ -55,6 +95,11 @@ function merge_flights($flightid, $nflightid,$username,$token,$usercomments)
 		$xoopsTpl->append('callsigns', $callsigns);
 		$xoopsTpl->append('callsigns2', $callsigns2);
     }
+	$xoopsTpl->assign('request_ip',$res['header']['request_ip']);
+	$xoopsTpl->assign('request_location',$res['header']['request_location']);
+	$xoopsTpl->assign('request_location_name',$res['header']['request_location_name']);
+	$xoopsTpl->assign('request_timezone_abbr',$res['header']['request_timezone_abbr']);
+	$xoopsTpl->assign('request_timezone',$res['header']['request_timezone']);
   }
 
 ///////////////////////////////////////////////////////////////////////
@@ -64,7 +109,7 @@ function top10_1Week()
 {
     global $xoopsTpl;
 	
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=lastweek"), true);
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=lastweek&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=10;
 
     for($i=0;$i<$nr;$i++)
@@ -83,7 +128,7 @@ function top10_1Month()
 {
     global $xoopsTpl;
 	
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=last30days"), true);
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=last30days&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=10;
 
     for($i=0;$i<$nr;$i++)
@@ -103,7 +148,7 @@ function ten_open_closed_flight()
 	
 
 	//10 RECENT OPENED/CLOSED FLIGHTS
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=recentstateswitch"), true);
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=recentstateswitch&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=sizeof($res["data"]["started"]["pilot"]);
 		
     for($i=0;$i<$nr;$i++)
@@ -136,7 +181,7 @@ function show_airport($icao)
 	global $xoopsTpl;
 	
 	/*airport details*/
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=airport&icao=$icao"), true);
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=airport&icao=$icao&ip=".$_SERVER['REMOTE_ADDR']), true);
 
     $xoopsTpl->assign('icao',$j_res["data"]["icao"]);
 	$xoopsTpl->assign('name',$j_res["data"]["name"]);
@@ -155,6 +200,7 @@ function show_airport($icao)
 	
 	$xoopsTpl->assign('city',$j_res["data"]["city"]);
 	$xoopsTpl->assign('country',$j_res["data"]["country"]);
+	$xoopsTpl->assign('zone',$j_res["data"]["zone"]);
 	$xoopsTpl->assign('lat',$j_res["data"]["lat"]);
 	$xoopsTpl->assign('lon',$j_res["data"]["lon"]);
 	$xoopsTpl->assign('alt',$j_res["data"]["alt"]);
@@ -162,7 +208,7 @@ function show_airport($icao)
 	$lon=$j_res["data"]["lon"];
 	
 	/*Pilots in vicinity*/
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livewaypoints"), true);
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livewaypoints&ip=".$_SERVER['REMOTE_ADDR']), true);
 	foreach($j_res["data"]["wpt"] as $wpt)
 	{
 		if ($wpt["current_status"]!="OPEN")
@@ -204,9 +250,10 @@ function show_flights($callsign,$page,$summary,$archive)
 
     /*Get total no of flights in that result set*/
 	if($archive==1)
-		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&archive=true&callsign=$callsign&offset=$offset"), true);
+		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&archive=true&callsign=$callsign&offset=$offset&ip=".$_SERVER['REMOTE_ADDR']), true);
 	else
-		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&callsign=$callsign&offset=$offset"), true);
+		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&callsign=$callsign&offset=$offset&ip=".$_SERVER['REMOTE_ADDR']), true);
+	$xoopsTpl->assign('status',$j_res["data"]["status"]);
 	$num_flights=$j_res["data"]["no_of_flights"];
 	$offset=$j_res["data"]["flight_list_offset"];
 	$page=$offset/$flights_per_page+1;
@@ -283,7 +330,7 @@ function show_flights($callsign,$page,$summary,$archive)
 
 	/*callsign log*/
 	//http://mpserver15.flightgear.org/modules/fgtracker/interface.php?action=alterrecord&callsign=callsig
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=alterlog&callsign=$callsign"), true);
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=alterlog&callsign=$callsign&ip=".$_SERVER['REMOTE_ADDR']), true);
 	foreach($j_res["data"]["log"] as $log)
 	{
 		$table4['operating_user']=$log["operating_user"];
@@ -305,14 +352,18 @@ function show_flight($flightid)
 
     /*flight details*/	
 	$flightid_escaped=urlencode($flightid);
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flight&flightid=$flightid_escaped"), true);
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flight&flightid=$flightid_escaped&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$callsign=$res["data"]["callsign"];
 	$xoopsTpl->assign('flightid',$res["data"]["flight_id"]);
 	$xoopsTpl->assign('callsign',$callsign);
 	$xoopsTpl->assign('model',$res["data"]["model"]);
 	$xoopsTpl->assign('start_time',$res["data"]["start_time"]);
-	$xoopsTpl->assign('starttime_raw',$res["data"]["start_time_raw"]);
-	$xoopsTpl->assign('endtime',$res["data"]["end_time"]);
+	$xoopsTpl->assign('start_time_utc',$res["data"]["start_time_utc"]);
+	$xoopsTpl->assign('start_time_local',$res["data"]["start_location"]["start_time_local"]);
+	$xoopsTpl->assign('start_time_raw',$res["data"]["start_time_raw"]);
+	$xoopsTpl->assign('end_time',$res["data"]["end_time"]);
+	$xoopsTpl->assign('end_time_utc',$res["data"]["end_time_utc"]);
+	$xoopsTpl->assign('end_time_local',$res["data"]["end_location"]["end_time_local"]);
 	$xoopsTpl->assign('duration',$res["data"]["duration"]);
 	$xoopsTpl->assign('dep_airport',$res["data"]["start_location"]["icao"]);
 	$xoopsTpl->assign('dep_airport_name',$res["data"]["start_location"]["icao_name"]);
@@ -410,7 +461,7 @@ function show_mpserverstatus()
 }
 
 ///////////////////////////////////////////////////////////////////////
-// SHOW_RANK (JSON_DB)
+// SHOW_PLANE (JSON_DB)
 ///////////////////////////////////////////////////////////////////////
 function show_plane($model,$page)
 {
@@ -426,7 +477,7 @@ function show_rank($page)
 	$no_of_callsigns_per_page=100;
 
 	$offset=$page*$no_of_callsigns_per_page;
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&offset=$offset"), true);
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&offset=$offset&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$offset=$j_res["data"]["pilot_list_offset"];
 	$page=intval($offset/$no_of_callsigns_per_page);
 	$num_callsigns=$j_res["data"]["no_of_pilots"];
@@ -449,7 +500,7 @@ function show_tracking_pilots()
 {
 	global $xoopsTpl;
 	
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livepilots"), true);
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livepilots&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=sizeof($res["data"]["pilot"]);
 
 	$xoopsTpl->assign('no_of_tracking_pilots', $nr);

@@ -1,5 +1,5 @@
 <CENTER>
-<center><!--<font color="blue">You are using FG Tracker (Salve) powered by Hazuki</font></center>-->
+<center><!--<font color="blue">六四天安門事件，天安門大屠殺，大紀元時報，民運，九評共產黨，《習近平後園失火》、《習近平暗通薄熙來》及《超級巨富中國暗黑交易》</font></center>-->
 <{section name=k loop=$topmsg}>
 <{$topmsg[k]}>
 <{/section}>
@@ -121,4 +121,10 @@
 	<{/section}>
 
 </TABLE>
+MPSERVER15 determines your current location appears to be  
+<{if $request_location!=null}>
+in <{$request_location_name}> <img src="icons/country-small/<{$request_location}>.png"  height="20" /> (<{$request_timezone_abbr}> - <{$request_timezone}>)
+<{else}>unknown <img src="icons/country-small/unk.png"  height="20" /> (<{$request_timezone_abbr}>)
+<{/if}> according to your IP "<{$request_ip}>". <br />Enable location request from MPSERVER15 to let MPSERVER15 providing you location-based service.
+
 </CENTER>   

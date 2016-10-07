@@ -1,0 +1,23 @@
+<script src='https://www.google.com/recaptcha/api.js'></script>
+<center><h1>Register your callsign</h1></center>
+<p>Depending on the registration progress, FGTracker will later ONLY track flight sessions that are connected to the tracked MPSERVER with callsigns that are registered in FGTracker.</p>
+
+<p>Callsign is case sensitive with maximum of 7 characters and only [A-Z], [a-z], [0-9], [-] is allowed ("_" is not accepted). <a href="Obligations%20Terms%20and%20Conditions.pdf" target="_blank">Obligation of FGTracker users</a> shall also be observed. Each email can only register five callsigns.</p>
+
+
+<p>Tower registration (i.e. callsign ending "_TW") is not allowed.</p>
+
+<p>Registration is only completed after you click the confirmation link that sends to your email. FGTracker maintainer holds the right to suspend any tracking on any callsign if the registration is not completed.</p>
+
+<p>Think twice before you register your callsign. Change of callsign will not be entertained.</p>
+
+<p>Callsign registration does not prevent your callsign being used or abused. Registration only aimed for reducing the growth rate of database size.</p>
+
+<form method="post" ACTION="?FUNCT=REGCALLSIGN2">
+	Enter your callsign:
+	<input type="text" name="callsign">
+	Enter your email:
+	<input type="text" name="email">
+<input value="Register" type="Submit">
+<div class="g-recaptcha" data-sitekey="6Lc8LAcUAAAAAMAx1zXtj74u393L5FCVzsSmJZwm"></div>
+</form>
