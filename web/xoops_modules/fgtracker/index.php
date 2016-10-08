@@ -136,6 +136,7 @@ switch ($funct)
 		include_once XOOPS_ROOT_PATH."/footer.php";
 		break;
 	case "REGCALLSIGN":
+		$xoopsTpl->assign('reCAPTCHA_public',reCAPTCHA_public);
 		$xoopsOption['template_main'] = "reg_callsign.html";
 		include_once XOOPS_ROOT_PATH."/footer.php";
 	break;
