@@ -1489,17 +1489,17 @@ CREATE INDEX "waypoints_id_restruct_old_id-index" ON waypoints_id_restruct USING
 
 CREATE RULE del_wp AS
     ON DELETE TO flights
-   WHERE (old.status = 'CLOSED'::text) DO  DELETE FROM waypoints
+   DO  DELETE FROM waypoints
   WHERE (waypoints.flight_id = old.id);
 
 
 --
--- Name: wp_del; Type: RULE; Schema: public; Owner: fgtracker
+-- Name: del_wp; Type: RULE; Schema: public; Owner: fgtracker
 --
 
-CREATE RULE wp_del AS
+CREATE RULE del_wp AS
     ON DELETE TO flights_archive
-   WHERE (old.status = 'CLOSED'::text) DO  DELETE FROM waypoints_archive
+   DO  DELETE FROM waypoints_archive
   WHERE (waypoints_archive.flight_id = old.id);
 
 

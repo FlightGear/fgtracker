@@ -1,4 +1,4 @@
-FGtracker server version 2.2-INCOMPLETE
+FGtracker server version 2.2
 
 1.Supporting FGMS
 Current version (Version 2.2) support the following fgms:
