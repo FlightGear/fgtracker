@@ -109,7 +109,7 @@ class fgt_read_V20151207
 				}else if($data[0]=="CONNECT" or $data[0]=="DISCONNECT" or strpos($data[4] ,"-")!= 4)
 				{
 					if(sizeof($data)!=6)
-						$this->catch_phase_error(true,$line);
+						$this->catch_phase_error(false,$line);
 					else
 					{
 						$msg_array=Array('nature'=>$data[0],'callsign'=>$data[1],'model'=>$data[3],'date'=>$data[4],'time'=>$data[5]);

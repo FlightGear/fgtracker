@@ -5,7 +5,7 @@ Rename this file to "config.php" before launching FGTracker server
 /*variable setup*/
 $var['port'] = 8000; /*Port to bind*/
 $var['error_reporting_level'] = E_NOTICE; /*Set Error reporting level (E_ERROR, E_WARNING, E_NOTICE, E_ALL). Default E_NOTICE*/
-$var['selective_callsign_tracking'] = true; /*If true, only callsign appears on table "callsigns") will be tracked*/
+$var['selective_callsign_tracking'] = true; /*If true, only callsign appears on table "callsigns" table will be tracked. Tower (XXXX_TW) will always be tracked*/
 $var['log_location'] = dirname(__FILE__); /*without tailing slash*/
 $var['log_client_msg'] = false; /* Whether Save the received message into a file*/
 

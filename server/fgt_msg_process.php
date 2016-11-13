@@ -243,7 +243,7 @@ class fgt_msg_process
 			case "CONNECT":
 				$err_prefix="Could not CONNECT for callsign \"".$msg_array['callsign']."\" from ".$clients[$this->uuid]['server_ident'].".";
 				
-				if($var['selective_callsign_tracking']===true)
+				if($var['selective_callsign_tracking']===true and !(strpos($msg_array['callsign'],"_TW") ==4 and strlen($msg_array['callsign'])==7))
 				{	/*check if callsign exist in callsigns table*/
 					$sql_parm=Array($msg_array['callsign']);
 					$sql="select * from callsigns where callsign=$1 and (activation_level>0 or (activation_level=0 and Now()-reg_time < INTERVAL '3 days'))";
