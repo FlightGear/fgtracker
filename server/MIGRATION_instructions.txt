@@ -1,5 +1,9 @@
 Migration Instructions of fgtracker
 
+From v2.1 to v2.2
+[db]		table "callsigns" added
+[db]		rules "del_wp" in table "flights" and "flights_archive" modified
+
 From v2.0 to v2.1
 [db]		table waypoints altered. Added "heading". All other columns changed to "NOT NULL" 
 [db]		table waypoints_all altered. Added "heading"

@@ -61,4 +61,12 @@ $modversion['templates'][8]['file'] = 'show_airport.html';
 $modversion['templates'][8]['description'] = '';
 $modversion['templates'][9]['file'] = 'show_plane.html';
 $modversion['templates'][9]['description'] = '';
+$modversion['templates'][10]['file'] = 'reg_callsign.html';
+$modversion['templates'][10]['description'] = '';
+$modversion['templates'][11]['file'] = 'show_callsign.html';
+$modversion['templates'][11]['description'] = '';
+$modversion['templates'][12]['file'] = 'reg_callsign2.html';
+$modversion['templates'][12]['description'] = '';
+$modversion['templates'][13]['file'] = 'reg_callsign3.html';
+$modversion['templates'][13]['description'] = '';
 ?>

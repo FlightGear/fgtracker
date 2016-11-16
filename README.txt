@@ -8,3 +8,5 @@ FGTracker consists of three modules:
 - web : Including XOOPS module presenting flight information on web server and API service
 
 See individual README file in the modules for more information.
+
+Current Version: V2.2beta

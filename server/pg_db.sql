@@ -3,6 +3,7 @@
 --
 
 SET statement_timeout = 0;
+SET lock_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
@@ -73,7 +74,7 @@ CREATE TYPE gtrgm (
 );
 
 
-ALTER TYPE public.gtrgm OWNER TO fgtracker;
+ALTER TYPE gtrgm OWNER TO fgtracker;
 
 --
 -- Name: gtrgm_compress(internal); Type: FUNCTION; Schema: public; Owner: fgtracker
@@ -224,20 +225,29 @@ CREATE OPERATOR % (
 ALTER OPERATOR public.% (text, text) OWNER TO postgres;
 
 --
+-- Name: gist_trgm_ops; Type: OPERATOR FAMILY; Schema: public; Owner: postgres
+--
+
+CREATE OPERATOR FAMILY gist_trgm_ops USING gist;
+
+
+ALTER OPERATOR FAMILY public.gist_trgm_ops USING gist OWNER TO postgres;
+
+--
 -- Name: gist_trgm_ops; Type: OPERATOR CLASS; Schema: public; Owner: postgres
 --
 
 CREATE OPERATOR CLASS gist_trgm_ops
-    FOR TYPE text USING gist AS
+    FOR TYPE text USING gist FAMILY gist_trgm_ops AS
     STORAGE gtrgm ,
     OPERATOR 1 %(text,text) ,
-    FUNCTION 1 gtrgm_consistent(gtrgm,internal,integer) ,
-    FUNCTION 2 gtrgm_union(bytea,internal) ,
-    FUNCTION 3 gtrgm_compress(internal) ,
-    FUNCTION 4 gtrgm_decompress(internal) ,
-    FUNCTION 5 gtrgm_penalty(internal,internal,internal) ,
-    FUNCTION 6 gtrgm_picksplit(internal,internal) ,
-    FUNCTION 7 gtrgm_same(gtrgm,gtrgm,internal);
+    FUNCTION 1 (text, text) gtrgm_consistent(gtrgm,internal,integer) ,
+    FUNCTION 2 (text, text) gtrgm_union(bytea,internal) ,
+    FUNCTION 3 (text, text) gtrgm_compress(internal) ,
+    FUNCTION 4 (text, text) gtrgm_decompress(internal) ,
+    FUNCTION 5 (text, text) gtrgm_penalty(internal,internal,internal) ,
+    FUNCTION 6 (text, text) gtrgm_picksplit(internal,internal) ,
+    FUNCTION 7 (text, text) gtrgm_same(gtrgm,gtrgm,internal);
 
 
 ALTER OPERATOR CLASS public.gist_trgm_ops USING gist OWNER TO postgres;
@@ -247,7 +257,29 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- Name: IPC; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+--
 
+CREATE TABLE "IPC" (
+    variable character(50) NOT NULL,
+    "IntValue" integer,
+    "FloatValue" numeric(16,4),
+    "StringValue" character(255),
+    "TimestampValue" timestamp with time zone,
+    "IntervalValue" interval
+);
+
+
+ALTER TABLE "IPC" OWNER TO fgtracker;
+
+--
+-- Name: TABLE "IPC"; Type: COMMENT; Schema: public; Owner: fgtracker
+--
+
+COMMENT ON TABLE "IPC" IS 'Inter-process communication';
+
+
+--
 -- Name: airports; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
 --
 
@@ -258,7 +290,7 @@ CREATE TABLE airports (
 );
 
 
-ALTER TABLE public.airports OWNER TO fgtracker;
+ALTER TABLE airports OWNER TO fgtracker;
 
 --
 -- Name: airports_id_seq; Type: SEQUENCE; Schema: public; Owner: fgtracker
@@ -272,7 +304,7 @@ CREATE SEQUENCE airports_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.airports_id_seq OWNER TO fgtracker;
+ALTER TABLE airports_id_seq OWNER TO fgtracker;
 
 --
 -- Name: airports_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
@@ -282,14 +314,107 @@ ALTER SEQUENCE airports_id_seq OWNED BY airports.id;
 
 
 --
--- Name: bloat; Type: VIEW; Schema: public; Owner: fgtracker
+-- Name: bloat; Type: VIEW; Schema: public; Owner: hazuki
 --
 
 CREATE VIEW bloat AS
-    SELECT sml.schemaname, sml.tablename, (sml.reltuples)::bigint AS reltuples, (sml.relpages)::bigint AS relpages, sml.otta, round(CASE WHEN (sml.otta = (0)::double precision) THEN 0.0 ELSE ((sml.relpages)::numeric / (sml.otta)::numeric) END, 1) AS tbloat, (((sml.relpages)::bigint)::double precision - sml.otta) AS wastedpages, (sml.bs * ((((sml.relpages)::double precision - sml.otta))::bigint)::numeric) AS wastedbytes, pg_size_pretty((((sml.bs)::double precision * ((sml.relpages)::double precision - sml.otta)))::bigint) AS wastedsize, sml.iname, (sml.ituples)::bigint AS ituples, (sml.ipages)::bigint AS ipages, sml.iotta, round(CASE WHEN ((sml.iotta = (0)::double precision) OR (sml.ipages = 0)) THEN 0.0 ELSE ((sml.ipages)::numeric / (sml.iotta)::numeric) END, 1) AS ibloat, CASE WHEN ((sml.ipages)::double precision < sml.iotta) THEN (0)::double precision ELSE (((sml.ipages)::bigint)::double precision - sml.iotta) END AS wastedipages, CASE WHEN ((sml.ipages)::double precision < sml.iotta) THEN (0)::double precision ELSE ((sml.bs)::double precision * ((sml.ipages)::double precision - sml.iotta)) END AS wastedibytes, CASE WHEN ((sml.ipages)::double precision < sml.iotta) THEN pg_size_pretty((0)::bigint) ELSE pg_size_pretty((((sml.bs)::double precision * ((sml.ipages)::double precision - sml.iotta)))::bigint) END AS wastedisize FROM (SELECT rs.schemaname, rs.tablename, cc.reltuples, cc.relpages, rs.bs, ceil(((cc.reltuples * (((((rs.datahdr + (rs.ma)::numeric) - CASE WHEN ((rs.datahdr % (rs.ma)::numeric) = (0)::numeric) THEN (rs.ma)::numeric ELSE (rs.datahdr % (rs.ma)::numeric) END))::double precision + rs.nullhdr2) + (4)::double precision)) / ((rs.bs)::double precision - (20)::double precision))) AS otta, COALESCE(c2.relname, '?'::name) AS iname, COALESCE(c2.reltuples, (0)::real) AS ituples, COALESCE(c2.relpages, 0) AS ipages, COALESCE(ceil(((c2.reltuples * ((rs.datahdr - (12)::numeric))::double precision) / ((rs.bs)::double precision - (20)::double precision))), (0)::double precision) AS iotta FROM (((((SELECT foo.ma, foo.bs, foo.schemaname, foo.tablename, ((foo.datawidth + (((foo.hdr + foo.ma) - CASE WHEN ((foo.hdr % foo.ma) = 0) THEN foo.ma ELSE (foo.hdr % foo.ma) END))::double precision))::numeric AS datahdr, (foo.maxfracsum * (((foo.nullhdr + foo.ma) - CASE WHEN ((foo.nullhdr % (foo.ma)::bigint) = 0) THEN (foo.ma)::bigint ELSE (foo.nullhdr % (foo.ma)::bigint) END))::double precision) AS nullhdr2 FROM (SELECT s.schemaname, s.tablename, constants.hdr, constants.ma, constants.bs, sum((((1)::double precision - s.null_frac) * (s.avg_width)::double precision)) AS datawidth, max(s.null_frac) AS maxfracsum, (constants.hdr + (SELECT (1 + (count(*) / 8)) FROM pg_stats s2 WHERE (((s2.null_frac <> (0)::double precision) AND (s2.schemaname = s.schemaname)) AND (s2.tablename = s.tablename)))) AS nullhdr FROM pg_stats s, (SELECT (SELECT (current_setting('block_size'::text))::numeric AS current_setting) AS bs, CASE WHEN ("substring"(foo.v, 12, 3) = ANY (ARRAY['8.0'::text, '8.1'::text, '8.2'::text])) THEN 27 ELSE 23 END AS hdr, CASE WHEN (foo.v ~ 'mingw32'::text) THEN 8 ELSE 4 END AS ma FROM (SELECT version() AS v) foo) constants GROUP BY s.schemaname, s.tablename, constants.hdr, constants.ma, constants.bs) foo) rs JOIN pg_class cc ON ((cc.relname = rs.tablename))) JOIN pg_namespace nn ON (((cc.relnamespace = nn.oid) AND (nn.nspname = rs.schemaname)))) LEFT JOIN pg_index i ON ((i.indrelid = cc.oid))) LEFT JOIN pg_class c2 ON ((c2.oid = i.indexrelid)))) sml WHERE ((((sml.relpages)::double precision - sml.otta) > (0)::double precision) OR (((sml.ipages)::double precision - sml.iotta) > (10)::double precision)) ORDER BY (sml.bs * ((((sml.relpages)::double precision - sml.otta))::bigint)::numeric) DESC, CASE WHEN ((sml.ipages)::double precision < sml.iotta) THEN (0)::double precision ELSE ((sml.bs)::double precision * ((sml.ipages)::double precision - sml.iotta)) END DESC;
+ SELECT sml.schemaname,
+    sml.tablename,
+    (sml.reltuples)::bigint AS reltuples,
+    (sml.relpages)::bigint AS relpages,
+    sml.otta,
+    round(
+        CASE
+            WHEN (sml.otta = (0)::double precision) THEN 0.0
+            ELSE ((sml.relpages)::numeric / (sml.otta)::numeric)
+        END, 1) AS tbloat,
+    (((sml.relpages)::bigint)::double precision - sml.otta) AS wastedpages,
+    (sml.bs * ((((sml.relpages)::double precision - sml.otta))::bigint)::numeric) AS wastedbytes,
+    pg_size_pretty((((sml.bs)::double precision * ((sml.relpages)::double precision - sml.otta)))::bigint) AS wastedsize,
+    sml.iname,
+    (sml.ituples)::bigint AS ituples,
+    (sml.ipages)::bigint AS ipages,
+    sml.iotta,
+    round(
+        CASE
+            WHEN ((sml.iotta = (0)::double precision) OR (sml.ipages = 0)) THEN 0.0
+            ELSE ((sml.ipages)::numeric / (sml.iotta)::numeric)
+        END, 1) AS ibloat,
+        CASE
+            WHEN ((sml.ipages)::double precision < sml.iotta) THEN (0)::double precision
+            ELSE (((sml.ipages)::bigint)::double precision - sml.iotta)
+        END AS wastedipages,
+        CASE
+            WHEN ((sml.ipages)::double precision < sml.iotta) THEN (0)::double precision
+            ELSE ((sml.bs)::double precision * ((sml.ipages)::double precision - sml.iotta))
+        END AS wastedibytes,
+        CASE
+            WHEN ((sml.ipages)::double precision < sml.iotta) THEN pg_size_pretty((0)::bigint)
+            ELSE pg_size_pretty((((sml.bs)::double precision * ((sml.ipages)::double precision - sml.iotta)))::bigint)
+        END AS wastedisize
+   FROM ( SELECT rs.schemaname,
+            rs.tablename,
+            cc.reltuples,
+            cc.relpages,
+            rs.bs,
+            ceil(((cc.reltuples * (((((rs.datahdr + (rs.ma)::numeric) -
+                CASE
+                    WHEN ((rs.datahdr % (rs.ma)::numeric) = (0)::numeric) THEN (rs.ma)::numeric
+                    ELSE (rs.datahdr % (rs.ma)::numeric)
+                END))::double precision + rs.nullhdr2) + (4)::double precision)) / ((rs.bs)::double precision - (20)::double precision))) AS otta,
+            COALESCE(c2.relname, '?'::name) AS iname,
+            COALESCE(c2.reltuples, (0)::real) AS ituples,
+            COALESCE(c2.relpages, 0) AS ipages,
+            COALESCE(ceil(((c2.reltuples * ((rs.datahdr - (12)::numeric))::double precision) / ((rs.bs)::double precision - (20)::double precision))), (0)::double precision) AS iotta
+           FROM ((((( SELECT foo.ma,
+                    foo.bs,
+                    foo.schemaname,
+                    foo.tablename,
+                    ((foo.datawidth + (((foo.hdr + foo.ma) -
+                        CASE
+                            WHEN ((foo.hdr % foo.ma) = 0) THEN foo.ma
+                            ELSE (foo.hdr % foo.ma)
+                        END))::double precision))::numeric AS datahdr,
+                    (foo.maxfracsum * (((foo.nullhdr + foo.ma) -
+                        CASE
+                            WHEN ((foo.nullhdr % (foo.ma)::bigint) = 0) THEN (foo.ma)::bigint
+                            ELSE (foo.nullhdr % (foo.ma)::bigint)
+                        END))::double precision) AS nullhdr2
+                   FROM ( SELECT s.schemaname,
+                            s.tablename,
+                            constants.hdr,
+                            constants.ma,
+                            constants.bs,
+                            sum((((1)::double precision - s.null_frac) * (s.avg_width)::double precision)) AS datawidth,
+                            max(s.null_frac) AS maxfracsum,
+                            (constants.hdr + ( SELECT (1 + (count(*) / 8))
+                                   FROM pg_stats s2
+                                  WHERE (((s2.null_frac <> (0)::double precision) AND (s2.schemaname = s.schemaname)) AND (s2.tablename = s.tablename)))) AS nullhdr
+                           FROM pg_stats s,
+                            ( SELECT ( SELECT (current_setting('block_size'::text))::numeric AS current_setting) AS bs,
+CASE
+ WHEN ("substring"(foo_1.v, 12, 3) = ANY (ARRAY['8.0'::text, '8.1'::text, '8.2'::text])) THEN 27
+ ELSE 23
+END AS hdr,
+CASE
+ WHEN (foo_1.v ~ 'mingw32'::text) THEN 8
+ ELSE 4
+END AS ma
+                                   FROM ( SELECT version() AS v) foo_1) constants
+                          GROUP BY s.schemaname, s.tablename, constants.hdr, constants.ma, constants.bs) foo) rs
+             JOIN pg_class cc ON ((cc.relname = rs.tablename)))
+             JOIN pg_namespace nn ON (((cc.relnamespace = nn.oid) AND (nn.nspname = rs.schemaname))))
+             LEFT JOIN pg_index i ON ((i.indrelid = cc.oid)))
+             LEFT JOIN pg_class c2 ON ((c2.oid = i.indexrelid)))) sml
+  WHERE ((((sml.relpages)::double precision - sml.otta) > (0)::double precision) OR (((sml.ipages)::double precision - sml.iotta) > (10)::double precision))
+  ORDER BY (sml.bs * ((((sml.relpages)::double precision - sml.otta))::bigint)::numeric) DESC,
+        CASE
+            WHEN ((sml.ipages)::double precision < sml.iotta) THEN (0)::double precision
+            ELSE ((sml.bs)::double precision * ((sml.ipages)::double precision - sml.iotta))
+        END DESC;
 
 
-ALTER TABLE public.bloat OWNER TO fgtracker;
+ALTER TABLE bloat OWNER TO hazuki;
 
 --
 -- Name: cache_time; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -301,7 +426,7 @@ CREATE TABLE cache_time (
 );
 
 
-ALTER TABLE public.cache_time OWNER TO fgtracker;
+ALTER TABLE cache_time OWNER TO fgtracker;
 
 --
 -- Name: cache_top100_alltime; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -319,7 +444,31 @@ CREATE TABLE cache_top100_alltime (
 );
 
 
-ALTER TABLE public.cache_top100_alltime OWNER TO fgtracker;
+ALTER TABLE cache_top100_alltime OWNER TO fgtracker;
+
+--
+-- Name: callsigns; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE TABLE callsigns (
+    callsign character varying(7) NOT NULL,
+    email character varying NOT NULL,
+    reg_ip cidr NOT NULL,
+    reg_token character varying NOT NULL,
+    reg_time timestamp with time zone DEFAULT statement_timestamp() NOT NULL,
+    comments text,
+    activation_level smallint DEFAULT 0::smallint NOT NULL
+);
+
+
+ALTER TABLE callsigns OWNER TO fgtracker;
+
+--
+-- Name: COLUMN callsigns.activation_level; Type: COMMENT; Schema: public; Owner: fgtracker
+--
+
+COMMENT ON COLUMN callsigns.activation_level IS '-3 = Dispute; -2 = Protected; -1 = Deactivated; 0 = Registered; 10 = Activated';
+
 
 --
 -- Name: fgms_servers; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -333,11 +482,29 @@ CREATE TABLE fgms_servers (
     location text,
     email text,
     receive_email boolean NOT NULL,
-    last_comm timestamp with time zone
+    last_comm timestamp with time zone,
+    enabled boolean DEFAULT true NOT NULL
 );
 
 
-ALTER TABLE public.fgms_servers OWNER TO fgtracker;
+ALTER TABLE fgms_servers OWNER TO fgtracker;
+
+--
+-- Name: fgsync_log; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE TABLE fgsync_log (
+    "timestamp" timestamp with time zone DEFAULT now(),
+    fgsync_current_update_freq integer,
+    fgsync_no_of_pilots_tracking integer,
+    fgsync_no_of_new_waypoints integer,
+    fgsync_no_of_new_flights integer,
+    system_load numeric(5,2),
+    fgsync_current_comparetick integer
+);
+
+
+ALTER TABLE fgsync_log OWNER TO fgtracker;
 
 --
 -- Name: fixes; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -351,7 +518,7 @@ CREATE TABLE fixes (
 );
 
 
-ALTER TABLE public.fixes OWNER TO fgtracker;
+ALTER TABLE fixes OWNER TO fgtracker;
 
 --
 -- Name: fixes_id_seq; Type: SEQUENCE; Schema: public; Owner: fgtracker
@@ -365,7 +532,7 @@ CREATE SEQUENCE fixes_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.fixes_id_seq OWNER TO fgtracker;
+ALTER TABLE fixes_id_seq OWNER TO fgtracker;
 
 --
 -- Name: fixes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
@@ -385,7 +552,7 @@ CREATE TABLE flight_plans (
 );
 
 
-ALTER TABLE public.flight_plans OWNER TO fgtracker;
+ALTER TABLE flight_plans OWNER TO fgtracker;
 
 --
 -- Name: flights; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -405,7 +572,7 @@ CREATE TABLE flights (
 );
 
 
-ALTER TABLE public.flights OWNER TO fgtracker;
+ALTER TABLE flights OWNER TO fgtracker;
 
 --
 -- Name: flights_archive; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -425,17 +592,41 @@ CREATE TABLE flights_archive (
 );
 
 
-ALTER TABLE public.flights_archive OWNER TO fgtracker;
+ALTER TABLE flights_archive OWNER TO fgtracker;
 
 --
 -- Name: flights_all; Type: VIEW; Schema: public; Owner: fgtracker
 --
 
 CREATE VIEW flights_all AS
-    SELECT flights.id, flights.callsign, flights.status, flights.model, flights.start_time, flights.end_time, flights.effective_flight_time, flights.start_icao, flights.end_icao, 0 AS wpts, 'flights'::text AS "table" FROM flights UNION ALL SELECT flights_archive.id, flights_archive.callsign, flights_archive.status, flights_archive.model, flights_archive.start_time, flights_archive.end_time, flights_archive.effective_flight_time, flights_archive.start_icao, flights_archive.end_icao, flights_archive.wpts, 'flights_archive'::text AS "table" FROM flights_archive;
+ SELECT flights.id,
+    flights.callsign,
+    flights.status,
+    flights.model,
+    flights.start_time,
+    flights.end_time,
+    flights.effective_flight_time,
+    flights.start_icao,
+    flights.end_icao,
+    0 AS wpts,
+    'flights'::text AS "table"
+   FROM flights
+UNION ALL
+ SELECT flights_archive.id,
+    flights_archive.callsign,
+    flights_archive.status,
+    flights_archive.model,
+    flights_archive.start_time,
+    flights_archive.end_time,
+    flights_archive.effective_flight_time,
+    flights_archive.start_icao,
+    flights_archive.end_icao,
+    flights_archive.wpts,
+    'flights_archive'::text AS "table"
+   FROM flights_archive;
 
 
-ALTER TABLE public.flights_all OWNER TO fgtracker;
+ALTER TABLE flights_all OWNER TO fgtracker;
 
 --
 -- Name: flights_id_seq; Type: SEQUENCE; Schema: public; Owner: fgtracker
@@ -449,7 +640,7 @@ CREATE SEQUENCE flights_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.flights_id_seq OWNER TO fgtracker;
+ALTER TABLE flights_id_seq OWNER TO fgtracker;
 
 --
 -- Name: flights_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
@@ -475,11 +666,12 @@ CREATE TABLE geo_airports (
     admin_area_lv_2 character varying(60),
     admin_area_lv_3 character varying(60),
     admin_area_lv_4 character varying(60),
-    airport_type smallint
+    airport_type smallint,
+    zone_name character varying
 );
 
 
-ALTER TABLE public.geo_airports OWNER TO fgtracker;
+ALTER TABLE geo_airports OWNER TO fgtracker;
 
 --
 -- Name: COLUMN geo_airports.airport_type; Type: COMMENT; Schema: public; Owner: fgtracker
@@ -487,6 +679,61 @@ ALTER TABLE public.geo_airports OWNER TO fgtracker;
 
 COMMENT ON COLUMN geo_airports.airport_type IS '100 = Land airport; 101=sea airport; 102=Heliport';
 
+
+--
+-- Name: geo_country; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE TABLE geo_country (
+    country character(2) NOT NULL,
+    country_name character varying NOT NULL
+);
+
+
+ALTER TABLE geo_country OWNER TO fgtracker;
+
+--
+-- Name: geo_ip; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE TABLE geo_ip (
+    start_ip inet NOT NULL,
+    end_ip inet NOT NULL,
+    start_intip bigint NOT NULL,
+    end_intip bigint NOT NULL,
+    country character(2) NOT NULL
+);
+
+
+ALTER TABLE geo_ip OWNER TO fgtracker;
+
+--
+-- Name: geo_timezone; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE TABLE geo_timezone (
+    zone_id integer NOT NULL,
+    abbr character(6) NOT NULL,
+    time_start bigint NOT NULL,
+    gmt_offset integer NOT NULL,
+    dst boolean NOT NULL
+);
+
+
+ALTER TABLE geo_timezone OWNER TO fgtracker;
+
+--
+-- Name: geo_zone; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE TABLE geo_zone (
+    zone_id smallint NOT NULL,
+    country character(2) NOT NULL,
+    zone_name character varying NOT NULL
+);
+
+
+ALTER TABLE geo_zone OWNER TO fgtracker;
 
 --
 -- Name: log; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -504,7 +751,7 @@ CREATE TABLE log (
 );
 
 
-ALTER TABLE public.log OWNER TO fgtracker;
+ALTER TABLE log OWNER TO fgtracker;
 
 --
 -- Name: models; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -516,7 +763,7 @@ CREATE TABLE models (
 );
 
 
-ALTER TABLE public.models OWNER TO fgtracker;
+ALTER TABLE models OWNER TO fgtracker;
 
 --
 -- Name: navaid_types; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -528,7 +775,7 @@ CREATE TABLE navaid_types (
 );
 
 
-ALTER TABLE public.navaid_types OWNER TO fgtracker;
+ALTER TABLE navaid_types OWNER TO fgtracker;
 
 --
 -- Name: navaids; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -546,7 +793,7 @@ CREATE TABLE navaids (
 );
 
 
-ALTER TABLE public.navaids OWNER TO fgtracker;
+ALTER TABLE navaids OWNER TO fgtracker;
 
 --
 -- Name: navaids_id_seq; Type: SEQUENCE; Schema: public; Owner: fgtracker
@@ -560,7 +807,7 @@ CREATE SEQUENCE navaids_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.navaids_id_seq OWNER TO fgtracker;
+ALTER TABLE navaids_id_seq OWNER TO fgtracker;
 
 --
 -- Name: navaids_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
@@ -584,7 +831,24 @@ CREATE TABLE pilot_request (
 );
 
 
-ALTER TABLE public.pilot_request OWNER TO fgtracker;
+ALTER TABLE pilot_request OWNER TO fgtracker;
+
+--
+-- Name: psql_applist; Type: VIEW; Schema: public; Owner: hazuki
+--
+
+CREATE VIEW psql_applist AS
+ SELECT pg_stat_activity.pid,
+    pg_stat_activity.usename,
+    pg_stat_activity.application_name,
+    pg_stat_activity.client_addr,
+    pg_stat_activity.query_start,
+    pg_stat_activity.state,
+    pg_stat_activity.query
+   FROM pg_stat_activity;
+
+
+ALTER TABLE psql_applist OWNER TO hazuki;
 
 --
 -- Name: route_points; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -597,7 +861,7 @@ CREATE TABLE route_points (
 );
 
 
-ALTER TABLE public.route_points OWNER TO fgtracker;
+ALTER TABLE route_points OWNER TO fgtracker;
 
 --
 -- Name: routes; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -617,7 +881,7 @@ CREATE TABLE routes (
 );
 
 
-ALTER TABLE public.routes OWNER TO fgtracker;
+ALTER TABLE routes OWNER TO fgtracker;
 
 --
 -- Name: routes_id_seq; Type: SEQUENCE; Schema: public; Owner: fgtracker
@@ -631,7 +895,7 @@ CREATE SEQUENCE routes_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.routes_id_seq OWNER TO fgtracker;
+ALTER TABLE routes_id_seq OWNER TO fgtracker;
 
 --
 -- Name: routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
@@ -655,7 +919,7 @@ CREATE TABLE runways (
 );
 
 
-ALTER TABLE public.runways OWNER TO fgtracker;
+ALTER TABLE runways OWNER TO fgtracker;
 
 --
 -- Name: temp_cache_top100_alltime; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -669,7 +933,7 @@ CREATE TABLE temp_cache_top100_alltime (
 );
 
 
-ALTER TABLE public.temp_cache_top100_alltime OWNER TO fgtracker;
+ALTER TABLE temp_cache_top100_alltime OWNER TO fgtracker;
 
 --
 -- Name: temp_cache_top100_alltime_rank_seq; Type: SEQUENCE; Schema: public; Owner: fgtracker
@@ -683,7 +947,7 @@ CREATE SEQUENCE temp_cache_top100_alltime_rank_seq
     CACHE 1;
 
 
-ALTER TABLE public.temp_cache_top100_alltime_rank_seq OWNER TO fgtracker;
+ALTER TABLE temp_cache_top100_alltime_rank_seq OWNER TO fgtracker;
 
 --
 -- Name: temp_cache_top100_alltime_rank_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
@@ -709,7 +973,7 @@ CREATE TABLE temp_flights (
 );
 
 
-ALTER TABLE public.temp_flights OWNER TO fgtracker;
+ALTER TABLE temp_flights OWNER TO fgtracker;
 
 --
 -- Name: tracker_stats; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -722,7 +986,7 @@ CREATE TABLE tracker_stats (
 );
 
 
-ALTER TABLE public.tracker_stats OWNER TO fgtracker;
+ALTER TABLE tracker_stats OWNER TO fgtracker;
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -734,7 +998,7 @@ CREATE TABLE users (
 );
 
 
-ALTER TABLE public.users OWNER TO fgtracker;
+ALTER TABLE users OWNER TO fgtracker;
 
 --
 -- Name: waypoints; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -751,7 +1015,7 @@ CREATE TABLE waypoints (
 );
 
 
-ALTER TABLE public.waypoints OWNER TO fgtracker;
+ALTER TABLE waypoints OWNER TO fgtracker;
 
 --
 -- Name: waypoints_archive; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
@@ -768,7 +1032,7 @@ CREATE TABLE waypoints_archive (
 );
 
 
-ALTER TABLE public.waypoints_archive OWNER TO fgtracker;
+ALTER TABLE waypoints_archive OWNER TO fgtracker;
 
 --
 -- Name: waypoints_all; Type: VIEW; Schema: public; Owner: fgtracker
@@ -793,10 +1057,28 @@ UNION ALL
     waypoints_archive.heading
    FROM waypoints_archive;
 
-ALTER TABLE public.waypoints_all OWNER TO fgtracker;
+
+ALTER TABLE waypoints_all OWNER TO fgtracker;
 
 --
--- Name: waypoints_id_restruct; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+-- Name: waypoints_bkup; Type: TABLE; Schema: public; Owner: hazuki; Tablespace: 
+--
+
+CREATE TABLE waypoints_bkup (
+    id integer,
+    flight_id integer,
+    "time" timestamp with time zone,
+    latitude double precision,
+    longitude double precision,
+    altitude double precision,
+    heading double precision
+);
+
+
+ALTER TABLE waypoints_bkup OWNER TO hazuki;
+
+--
+-- Name: waypoints_id_restruct; Type: TABLE; Schema: public; Owner: hazuki; Tablespace: 
 --
 
 CREATE TABLE waypoints_id_restruct (
@@ -805,10 +1087,10 @@ CREATE TABLE waypoints_id_restruct (
 );
 
 
-ALTER TABLE public.waypoints_id_restruct OWNER TO fgtracker;
+ALTER TABLE waypoints_id_restruct OWNER TO hazuki;
 
 --
--- Name: waypoints_id_restruct_id_seq; Type: SEQUENCE; Schema: public; Owner: fgtracker
+-- Name: waypoints_id_restruct_id_seq; Type: SEQUENCE; Schema: public; Owner: hazuki
 --
 
 CREATE SEQUENCE waypoints_id_restruct_id_seq
@@ -819,10 +1101,10 @@ CREATE SEQUENCE waypoints_id_restruct_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.waypoints_id_restruct_id_seq OWNER TO fgtracker;
+ALTER TABLE waypoints_id_restruct_id_seq OWNER TO hazuki;
 
 --
--- Name: waypoints_id_restruct_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
+-- Name: waypoints_id_restruct_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: hazuki
 --
 
 ALTER SEQUENCE waypoints_id_restruct_id_seq OWNED BY waypoints_id_restruct.id;
@@ -840,7 +1122,7 @@ CREATE SEQUENCE waypoints_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.waypoints_id_seq OWNER TO fgtracker;
+ALTER TABLE waypoints_id_seq OWNER TO fgtracker;
 
 --
 -- Name: waypoints_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: fgtracker
@@ -854,20 +1136,15 @@ ALTER SEQUENCE waypoints_id_seq OWNED BY waypoints.id;
 --
 
 CREATE VIEW waypoints_last_month AS
-    SELECT count(*) AS count FROM waypoints WHERE ((date_part('year'::text, waypoints."time") = date_part('year'::text, (now() - '1 mon'::interval))) AND (date_part('month'::text, waypoints."time") = date_part('month'::text, (now() - '1 mon'::interval))));
+ SELECT count(*) AS count
+   FROM waypoints
+  WHERE ((date_part('year'::text, waypoints."time") = date_part('year'::text, (now() - '1 mon'::interval))) AND (date_part('month'::text, waypoints."time") = date_part('month'::text, (now() - '1 mon'::interval))));
 
 
-ALTER TABLE public.waypoints_last_month OWNER TO fgtracker;
-
---
--- Name: VIEW waypoints_last_month; Type: COMMENT; Schema: public; Owner: fgtracker
---
-
-COMMENT ON VIEW waypoints_last_month IS 'Count last months waypoints added to the database.';
-
+ALTER TABLE waypoints_last_month OWNER TO fgtracker;
 
 --
--- Name: x_temp_missing_flightid; Type: TABLE; Schema: public; Owner: fgtracker; Tablespace: 
+-- Name: x_temp_missing_flightid; Type: TABLE; Schema: public; Owner: hazuki; Tablespace: 
 --
 
 CREATE TABLE x_temp_missing_flightid (
@@ -876,7 +1153,7 @@ CREATE TABLE x_temp_missing_flightid (
 );
 
 
-ALTER TABLE public.x_temp_missing_flightid OWNER TO fgtracker;
+ALTER TABLE x_temp_missing_flightid OWNER TO hazuki;
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: fgtracker
@@ -928,10 +1205,19 @@ ALTER TABLE ONLY waypoints ALTER COLUMN id SET DEFAULT nextval('waypoints_id_seq
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: fgtracker
+-- Name: id; Type: DEFAULT; Schema: public; Owner: hazuki
 --
 
 ALTER TABLE ONLY waypoints_id_restruct ALTER COLUMN id SET DEFAULT nextval('waypoints_id_restruct_id_seq'::regclass);
+
+
+--
+-- Name: IPC_pkey; Type: CONSTRAINT; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+ALTER TABLE ONLY "IPC"
+    ADD CONSTRAINT "IPC_pkey" PRIMARY KEY (variable);
+
 
 --
 -- Name: airports_pkey; Type: CONSTRAINT; Schema: public; Owner: fgtracker; Tablespace: 
@@ -939,6 +1225,14 @@ ALTER TABLE ONLY waypoints_id_restruct ALTER COLUMN id SET DEFAULT nextval('wayp
 
 ALTER TABLE ONLY airports
     ADD CONSTRAINT airports_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: callsigns_callsign; Type: CONSTRAINT; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+ALTER TABLE ONLY callsigns
+    ADD CONSTRAINT callsigns_callsign PRIMARY KEY (callsign);
 
 
 --
@@ -1006,7 +1300,7 @@ ALTER TABLE ONLY waypoints_archive
 
 
 --
--- Name: waypoints_id_restruct_pkey; Type: CONSTRAINT; Schema: public; Owner: fgtracker; Tablespace: 
+-- Name: waypoints_id_restruct_pkey; Type: CONSTRAINT; Schema: public; Owner: hazuki; Tablespace: 
 --
 
 ALTER TABLE ONLY waypoints_id_restruct
@@ -1068,6 +1362,13 @@ CREATE INDEX "flights_archive-callsign-idx" ON flights_archive USING btree (call
 --
 
 CREATE UNIQUE INDEX flights_archive2_pkey ON flights_archive USING btree (id);
+
+
+--
+-- Name: geo_timezone_zone_id; Type: INDEX; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE INDEX geo_timezone_zone_id ON geo_timezone USING btree (zone_id);
 
 
 --
@@ -1162,6 +1463,13 @@ CREATE INDEX "waypoints-flight_id-idx" ON waypoints USING btree (flight_id);
 
 
 --
+-- Name: waypoints-flight_id-time-idx; Type: INDEX; Schema: public; Owner: fgtracker; Tablespace: 
+--
+
+CREATE INDEX "waypoints-flight_id-time-idx" ON waypoints USING btree (flight_id, "time");
+
+
+--
 -- Name: waypoints_archive-flight_id-idx; Type: INDEX; Schema: public; Owner: fgtracker; Tablespace: 
 --
 
@@ -1169,7 +1477,7 @@ CREATE INDEX "waypoints_archive-flight_id-idx" ON waypoints_archive USING btree 
 
 
 --
--- Name: waypoints_id_restruct_old_id-index; Type: INDEX; Schema: public; Owner: fgtracker; Tablespace: 
+-- Name: waypoints_id_restruct_old_id-index; Type: INDEX; Schema: public; Owner: hazuki; Tablespace: 
 --
 
 CREATE INDEX "waypoints_id_restruct_old_id-index" ON waypoints_id_restruct USING btree (old_id);
@@ -1179,14 +1487,20 @@ CREATE INDEX "waypoints_id_restruct_old_id-index" ON waypoints_id_restruct USING
 -- Name: del_wp; Type: RULE; Schema: public; Owner: fgtracker
 --
 
-CREATE RULE del_wp AS ON DELETE TO flights WHERE (old.status = 'CLOSED'::text) DO DELETE FROM waypoints WHERE (waypoints.flight_id = old.id);
+CREATE RULE del_wp AS
+    ON DELETE TO flights
+   DO  DELETE FROM waypoints
+  WHERE (waypoints.flight_id = old.id);
 
 
 --
 -- Name: del_wp; Type: RULE; Schema: public; Owner: fgtracker
 --
 
-CREATE RULE del_wp AS ON DELETE TO flights_archive WHERE (old.status = 'CLOSED'::text) DO DELETE FROM waypoints_archive WHERE (waypoints_archive.flight_id = old.id);
+CREATE RULE del_wp AS
+    ON DELETE TO flights_archive
+   DO  DELETE FROM waypoints_archive
+  WHERE (waypoints_archive.flight_id = old.id);
 
 
 --
@@ -1234,7 +1548,7 @@ GRANT ALL ON TABLE flights TO fgtracker;
 REVOKE ALL ON TABLE log FROM PUBLIC;
 REVOKE ALL ON TABLE log FROM fgtracker;
 GRANT ALL ON TABLE log TO fgtracker;
-GRANT ALL ON TABLE log TO fgtracker WITH GRANT OPTION;
+GRANT ALL ON TABLE log TO hazuki WITH GRANT OPTION;
 
 
 --
@@ -1319,22 +1633,22 @@ GRANT ALL ON TABLE waypoints TO fgtracker;
 
 
 --
--- Name: waypoints_id_restruct; Type: ACL; Schema: public; Owner: fgtracker
+-- Name: waypoints_id_restruct; Type: ACL; Schema: public; Owner: hazuki
 --
 
 REVOKE ALL ON TABLE waypoints_id_restruct FROM PUBLIC;
-REVOKE ALL ON TABLE waypoints_id_restruct FROM fgtracker;
-GRANT ALL ON TABLE waypoints_id_restruct TO fgtracker;
+REVOKE ALL ON TABLE waypoints_id_restruct FROM hazuki;
+GRANT ALL ON TABLE waypoints_id_restruct TO hazuki;
 GRANT ALL ON TABLE waypoints_id_restruct TO fgtracker;
 
 
 --
--- Name: waypoints_id_restruct_id_seq; Type: ACL; Schema: public; Owner: fgtracker
+-- Name: waypoints_id_restruct_id_seq; Type: ACL; Schema: public; Owner: hazuki
 --
 
 REVOKE ALL ON SEQUENCE waypoints_id_restruct_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE waypoints_id_restruct_id_seq FROM fgtracker;
-GRANT ALL ON SEQUENCE waypoints_id_restruct_id_seq TO fgtracker;
+REVOKE ALL ON SEQUENCE waypoints_id_restruct_id_seq FROM hazuki;
+GRANT ALL ON SEQUENCE waypoints_id_restruct_id_seq TO hazuki;
 GRANT ALL ON SEQUENCE waypoints_id_restruct_id_seq TO fgtracker;
 
 

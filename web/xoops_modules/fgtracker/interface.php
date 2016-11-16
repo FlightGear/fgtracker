@@ -3,9 +3,9 @@
 /*some global setting*/
 $time_start = microtime(true); 
 $reply=Array();
-$var["min_alt"]=-9000; /*waypoints lower than this altitude are ignored*/
-$var["adminname"]="FGTracker"; /*set XOOPS admin - Only admin can delete flights etc.*/
-$var["alter_db_token"]="<Edit here>";
+
+/*Allow CORS*/
+header("Access-Control-Allow-Origin: *");
 
 /*check if server is overloaded*/
 $serverload=explode(" ",file_get_contents('/proc/loadavg'));
@@ -13,26 +13,70 @@ if (floatval($serverload[0])>10)
 {
 	
 	$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error. This server is overloaded. Current loading: '.$serverload[0]);
-	$reply=addtime($reply);
+	$reply=addheader($reply);
 	print json_encode($reply);
 	return;
 }
-
-/*connect to DB*/
-include_once 'include/db_connect.php';
-include_once 'include/flight_delete.php';
-include_once 'include/flight_merge.php';
+require("interface.files/config.php");
 include_once 'include/flight_report.php';
 include_once 'include/get_nearest_airport.php';
+include_once 'interface.files/flight_merge.php';
+include_once 'interface.files/flight_delete.php';
+include_once 'interface.files/reg_callsign.php';
 
 if ($conn ===FALSE)
 {
 	$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error. DB cannot be connected');
-	$reply=addtime($reply);
+	$reply=addheader($reply);
 	print json_encode($reply);
 	return;
 }
 
+/*set timezone according to client IP http://dev.maxmind.com/geoip/legacy/geolite/*/
+if (isset($_GET['ip']))
+{
+	//echo "ip isset";
+	if (filter_var($_GET['ip'], FILTER_VALIDATE_IP)) 
+		$client['ip']=$_GET['ip'];
+	else $client['ip']=$_SERVER['REMOTE_ADDR'];
+} else
+	$client['ip']=$_SERVER['REMOTE_ADDR'];
+$clienteip=explode('.', $client['ip']);
+$clientintip=  ( 16777216 * $clienteip[0] )
+             + (    65536 * $clienteip[1] )
+             + (      256 * $clienteip[2] )
+             +              $clienteip[3];
+//$sql="SELECT a.country, country_name, (select zone_name from geo_zone c where c.country=a.country LIMIT 1) from geo_ip a left join geo_country b on a.country= b.country where $clientintip between start_intip and end_intip";
+$sql="select * from (SELECT a.country, country_name, (select zone_name from geo_zone c where c.country=a.country LIMIT 1), (select zone_id from geo_zone d where d.country=a.country LIMIT 1) from geo_ip a left join geo_country b on a.country= b.country where $clientintip between start_intip and end_intip) AS e left join geo_timezone as f on e.zone_id=f.zone_id where time_start < extract(epoch from now()) order by time_start desc limit 1;";
+//print $sql;
+$res=pg_query($conn,$sql);
+if ($res!==FALSE)
+	if (pg_result($res,0,'country')===false)
+	{
+		$client['country']=NULL;
+		$client['country_name']="Unknown";
+		$client['timezone']="UTC";
+		$client['timezone_abbr']="UTC";
+	}	
+	else
+	{
+		$client['country']=pg_result($res,0,'country');
+		$client['country_name']=pg_result($res,0,'country_name');
+		$client['timezone']=pg_result($res,0,'zone_name');
+		$client['timezone_abbr']=pg_result($res,0,'abbr');
+	}
+
+else
+{
+	$client['country']=NULL;
+	$client['country_name']="Unknown";
+	$client['timezone']="UTC";
+	$client['timezone_abbr']="UTC";
+}
+$sql="set timezone='".$client['timezone']."'";
+$res=pg_query($conn,$sql);
+
+/*start*/
 $action=$callsign=$archive=$offset=$flightid=$orderby=$wpt="";
 $action=trim($_GET['action']);
 
@@ -101,6 +145,18 @@ switch ($action)
 	case "recentstateswitch":
 		$reply=recentstateswitch($conn,$reply);
 	break;
+	case "regcallsign":
+		$callsign=@trim($_GET['callsign']);
+		$email=@trim($_GET['email']);
+		$ip=@trim($_GET['ip']);
+		$grecaptcharesponse=@trim($_GET['grecaptcharesponse']);
+		$reply=reg_callsign($conn,$reply,$callsign,$email,$ip,$grecaptcharesponse);
+	break;
+	case "regcallsign2":
+		$callsign=@trim($_GET['callsign']);
+		$token=@trim($_GET['token']);
+		$reply=reg_callsign2($conn,$reply,$callsign,$token);
+	break;
 	default:
 	$reply["header"]=Array("code"=>400,"msg"=>'Bad Request. Action not defined.');
 }
@@ -108,7 +164,7 @@ switch ($action)
 /*print "<pre>";
 var_dump($reply);
 print "</pre>";*/
-$reply=addtime($reply,$time_start);
+$reply=addheader($reply,$time_start,$client);
 $ru = getrusage();
 
 print json_encode(array_reverse($reply, true));
@@ -149,6 +205,7 @@ function airport($conn,$reply,$icao)
 	$reply["data"]['alt']=floatval(pg_result($res,0,'alt'));
 	$reply["data"]['city']=pg_result($res,0,'city');
 	$reply["data"]['country']=pg_result($res,0,'country');
+	$reply["data"]['zone']=pg_result($res,0,'zone_name');
 	$reply["data"]['administrative_area_level_1']=pg_result($res,0,'admin_area_lv_1');
 	$reply["data"]['administrative_area_level_2']=pg_result($res,0,'admin_area_lv_2');
 	$reply["data"]['administrative_area_level_3']=pg_result($res,0,'admin_area_lv_3');
@@ -159,12 +216,17 @@ function airport($conn,$reply,$icao)
 	return $reply;
 }
 
-function addtime($reply,$time_start)
+function addheader($reply,$time_start,$client)
 {	
 	$time_end = microtime(true);
 	$reply["header"]["request_time"]=date("Y-m-d H:i:sO",$_SERVER['REQUEST_TIME']);
 	$reply["header"]["request_time_raw"]=$_SERVER['REQUEST_TIME'];
 	$reply["header"]["process_time"]=$time_end-$time_start;
+	$reply["header"]["request_ip"]=$client['ip'];
+	$reply["header"]["request_location"]=$client['country'];
+	$reply["header"]["request_location_name"]=$client['country_name'];
+	$reply["header"]["request_timezone"]=$client['timezone'];
+	$reply["header"]["request_timezone_abbr"]=$client['timezone_abbr'];
 	return $reply;
 }
 
@@ -195,7 +257,13 @@ function alterlog($conn,$reply,$callsign)
 		$username=pg_result($res,$i,'username');
 		if (substr( $username, 0, 2 ) == "10.")
 			$username="Intranet";
+		else if (filter_var($username, FILTER_VALIDATE_IP))
+		{
+			$iparr=explode(".",$username);
+			$username=$iparr[0].".".$iparr[1].".*.*";
+		}
 			
+	
 		$log_array=Array("flight_id"=>pg_result($res,$i,'flight_id'),"operating_user"=>$username, "action"=>pg_result($res,$i,'action'),"time"=>pg_result($res,$i,'when_tunc'),"comments"=>pg_result($res,$i,'usercomments'));
 		$reply["data"]['log'][]=$log_array;
 	}
@@ -233,7 +301,7 @@ function flight($conn,$reply,$flightid)
 	pg_free_result($res);
 	
 	/*get flight details*/
-	$res=pg_query($conn,"SELECT callsign,model,start_time,EXTRACT(EPOCH FROM start_time) AS start_time_raw,end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, justify_hours(end_time-start_time) AS duration,EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw FROM flights_all WHERE id=$flightid_escaped");
+	$res=pg_query($conn,"SELECT callsign,model,start_time, start_time AT TIME ZONE 'UTC' AS start_time_utc,EXTRACT(EPOCH FROM start_time) AS start_time_raw,end_time, end_time AT TIME ZONE 'UTC' AS end_time_utc, EXTRACT(EPOCH FROM end_time) AS end_time_raw, justify_hours(end_time-start_time) AS duration,EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw FROM flights_all WHERE id=$flightid_escaped");
     if ($res===false)
 	{
 		$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error');
@@ -250,7 +318,9 @@ function flight($conn,$reply,$flightid)
 	$model=pg_result($res,0,'model');
 	$start_time_raw=intval(pg_result($res,0,'start_time_raw'));
 	$start_time=pg_result($res,0,'start_time');
+	$start_time_utc=pg_result($res,0,'start_time_utc');
 	$end_time=pg_result($res,0,'end_time');
+	$end_time_utc=pg_result($res,0,'end_time_utc');
 	$end_time_raw=intval(pg_result($res,0,'end_time_raw'));
 	$duration=pg_result($res,0,'duration');
 	$duration_raw=intval(pg_result($res,0,'duration_raw'));
@@ -264,15 +334,17 @@ function flight($conn,$reply,$flightid)
 	$reply["data"]['callsign']=$callsign;
 	$reply["data"]['model']=$model;
 	$reply["data"]['start_time']=$start_time;
+	$reply["data"]['start_time_utc']=$start_time_utc;
 	$reply["data"]['start_time_raw']=$start_time_raw;
 	$reply["data"]['end_time']=$end_time;
+	$reply["data"]['end_time_utc']=$end_time_utc;
 	$reply["data"]['end_time_raw']=$end_time_raw;
 	$reply["data"]['duration']=$duration;
 	$reply["data"]['duration_raw']=$duration_raw;
 
     pg_free_result($res);
 	
-    $res=pg_query($conn,"SELECT time,EXTRACT(EPOCH FROM time) AS time_raw,longitude,latitude,altitude FROM waypoints_all WHERE flight_id=$flightid_escaped AND (longitude!=0 OR latitude!=0 OR altitude!=0) AND altitude>=".$var["min_alt"]." ORDER BY time;");
+    $res=pg_query($conn,"SELECT time ,EXTRACT(EPOCH FROM time) AS time_raw,longitude,latitude,altitude FROM waypoints_all WHERE flight_id=$flightid_escaped AND (longitude!=0 OR latitude!=0 OR altitude!=0) AND altitude>=".$var["min_alt"]." ORDER BY time;");
     $nr=pg_num_rows($res);
 	
 	$reply["data"]['wpts']=$nr;
@@ -294,15 +366,37 @@ function flight($conn,$reply,$flightid)
 	$reply["data"]["start_location"]["icao"]=$dep_airport[0];
 	$reply["data"]["start_location"]["icao_name"]=$dep_airport[1];
 	$reply["data"]["start_location"]["country"]=$dep_airport[2];
+	$reply["data"]["start_location"]["zone"]=$dep_airport[4];
 	
+	/*Get departure local time*/
+	if($dep_airport[4]!= NULL)
+	{
+		$res=pg_query_params($conn,"SELECT $1 AT TIME ZONE $2 AS start_time_local",Array($start_time,$dep_airport[4]));
+		if (pg_num_rows($res)!=0)
+		{
+			$reply["data"]["start_location"]["start_time_local"]=pg_result($res,0,'start_time_local');
+		}
+	}
+
 	/*arrival airport*/
 	$arr_airport=get_nearest_airport($conn,$lat,$lon,$alt);
 	$reply["data"]["end_location"]["icao"]=$arr_airport[0];
 	$reply["data"]["end_location"]["icao_name"]=$arr_airport[1];
 	$reply["data"]["end_location"]["country"]=$arr_airport[2];
+	$reply["data"]["end_location"]["zone"]=$arr_airport[4];
+	
+	/*Get arrival local time*/
+	if($arr_airport[4]!= NULL and $end_time !=NULL)
+	{
+		$res=pg_query_params($conn,"SELECT $1 AT TIME ZONE $2 AS end_time_local",Array($end_time,$arr_airport[4]));
+		if (pg_num_rows($res)!=0)
+		{
+			$reply["data"]["end_location"]["end_time_local"]=pg_result($res,0,'end_time_local');
+		}
+	}
 	
 	/*previous flight details*/
-	$res=pg_query($conn,"SELECT id, callsign,model,start_time,end_time,EXTRACT(EPOCH FROM start_time) AS start_time_raw,EXTRACT(EPOCH FROM end_time) AS endtime_raw FROM flights_all WHERE id<$flightid_escaped and callsign='$callsign' order by end_time desc limit 1");
+	$res=pg_query($conn,"SELECT id, callsign,model,start_time ,end_time ,EXTRACT(EPOCH FROM start_time) AS start_time_raw,EXTRACT(EPOCH FROM end_time) AS endtime_raw FROM flights_all WHERE id<$flightid_escaped and callsign='$callsign' order by end_time desc limit 1");
 	if (pg_num_rows($res)!=0)
     {
 		$p_flightid=pg_result($res,0,'id');
@@ -348,6 +442,30 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 	
 	$callsign_escaped=pg_escape_string($conn,$callsign);
 	
+	/*If callsign is registered*/
+	$callsign_check=callsign_registered($conn,$callsign_escaped);
+	if(is_null($callsign_check["activation_level"]))
+		$reply["data"]["status"]="Not Registered";
+	else
+		switch ($callsign_check["activation_level"]) 
+		{
+			case -3:
+				$reply["data"]["status"]="Dispute";
+			case -2:
+				$reply["data"]["status"]="Protected";
+			break;
+			case -1:
+				$reply["data"]["status"]="Deactivated";
+			break;
+			case 0:
+				$reply["data"]["status"]="Registered";
+			break;
+			case 10:
+				$reply["data"]["status"]="Activated";
+			break;
+			default:
+				$reply["data"]["status"]="Unknown";
+		}
 	/*No of flights*/
 	if ($archive=="true")
 	{
@@ -359,6 +477,9 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 		$reply["data"]["is_archive"]=false;
 		$res=pg_query($conn,"SELECT count(*) FROM flights WHERE callsign='$callsign_escaped';");
 	}
+	if ($reply["data"]["status"]=="Dispute")
+		return $reply;
+	
     $num_flights=pg_result($res,0,0);
 	$reply["data"]["no_of_flights"]=intval($num_flights);
     pg_free_result($res);
@@ -455,10 +576,8 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 	
 	/*flight_list*/
 	if ($archive=="true")
-		//$res=pg_query($conn,"SELECT id,callsign,model,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw, wpts as numwpts, start_icao, end_icao FROM flights_archive AS f WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
 		$res=pg_query($conn,"SELECT id,callsign,model,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw, wpts as numwpts, start_icao, dep.name as start_icaoname, dep.country AS start_country, end_icao, arr.name as end_icaoname, arr.country AS end_country FROM flights_archive AS f left join geo_airports as dep ON start_icao=dep.icao left join geo_airports as arr ON end_icao=arr.icao WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
 	else
-		//$res=pg_query($conn,"SELECT id,callsign,model,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw,(SELECT count(*) from waypoints where f.id=flight_id) as numwpts, start_icao, end_icao FROM flights AS f WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
 		$res=pg_query($conn,"SELECT id,callsign,model,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw, (SELECT count(*) from waypoints where f.id=flight_id) as numwpts, start_icao, dep.name as start_icaoname, dep.country as start_country, end_icao, arr.name as end_icaoname, arr.country as end_country FROM flights AS f left join geo_airports as dep ON start_icao=dep.icao left join geo_airports as arr ON end_icao=arr.icao WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
 
     $nr=pg_num_rows($res);

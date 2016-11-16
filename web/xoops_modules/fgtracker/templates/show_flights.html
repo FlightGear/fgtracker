@@ -1,14 +1,18 @@
 <CENTER>
+<{if $status =="Disput"}>
+<p><font color="red">A person has filed a disput to this callsign (<{$callsign}>) to FGTracker maintainer. Data relating to this callsign is hidden. This callsign will not be tracked until disput is clear.</font></p>
+<{/if}>
 <{section name=k loop=$topmsg}>
 <{$topmsg[k]}>
 <{/section}>
 <table>
 <tr><th>#</th><th>Section</th></tr>
-<tr><th>1</th><td><a href="#aircraftlist">Summary report per aircraft for <{$callsign}></a></td>
-<tr><th>2</th><td><a href="#arrivallist">Summary on departures by airport (top 100 at most)</a></td>
-<tr><th>3</th><td><a href="#departurelist">Summary on arrivals by airport (top 100 at most)</a></td>
-<tr><th>4</th><td><a href="#flightslist">Detailed flight log of <{$callsign}></a> <{if $archive == 1}>(Click <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>">here</a> for current data)<{else}>(Click <A HREF="?FUNCT=FLIGHTS&ARCHIVE=TRUE&CALLSIGN=<{$callsign}>">here</a> for flights on or before <{$archivedate[0]}>)<{/if}></td>
-<tr><th>5</th><td><a href="#alterlog">Recent data changes (top 100 by time descent)</td>
+<tr><th>1</th><td><a href="#aircraftlist">Summary report per aircraft for <{$callsign}></a></td></tr>
+<tr><th>2</th><td><a href="#arrivallist">Summary on departures by airport (top 100 at most)</a></td></tr>
+<tr><th>3</th><td><a href="#departurelist">Summary on arrivals by airport (top 100 at most)</a></td></tr>
+<tr><th>4</th><td><a href="#flightslist">Detailed flight log of <{$callsign}></a> <{if $archive == 1}>(Click <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>">here</a> for current data)<{else}>(Click <A HREF="?FUNCT=FLIGHTS&ARCHIVE=TRUE&CALLSIGN=<{$callsign}>">here</a> for flights on or before <{$archivedate[0]}>)<{/if}></td></tr>
+<tr><th>5</th><td><a href="#alterlog">Recent data changes (top 100 by time descent)</td></tr>
+<tr><th>6</th><td><a href="#regstatus">Registration status</td></tr>
 </table>
 <hr>
 <p></p>
@@ -45,7 +49,7 @@
 		<td align="right" BGCOLOR=#F0F0F0><{$tablea2[i].duration|replace:'days':'d'|replace:'day':'d'}></td>
 		<td align="right" BGCOLOR=#F0F0F0><{$tablea2[i].effective_flight_time|replace:'days':'d'|replace:'day':'d'}></td>
 	</tr>
- <{/if}>
+<{/if}>
 <{assign var=val value=$val+2}>
 <{assign var=val2 value=$val2+2}>
 <{/section}>
@@ -332,6 +336,12 @@
 <{/if}>
 <{assign var=val value=$val+1}>
 <{/section}>
+</table>
+
+<table id="regstatus">
+<tr>
+	<th>Registration status: <{$status}> <a href="#headerWrap">[TOP &uarr;]</a></th>
+</tr>
 </table>
 </CENTER>
 

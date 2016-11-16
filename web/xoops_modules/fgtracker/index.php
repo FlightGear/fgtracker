@@ -1,11 +1,11 @@
 <?php
-if (stripos($_SERVER['HTTP_USER_AGENT'],"baidu")!==false)
+/*if (stripos($_SERVER['HTTP_USER_AGENT'],"baidu")!==false)
 {
 	header("HTTP/1.0 404 Not Found");
 	exit();
 }
 
-/*if (stripos($_SERVER['HTTP_USER_AGENT'],"firefox")!==false)
+if (stripos($_SERVER['HTTP_USER_AGENT'],"firefox")!==false)
 {
 	echo "Sorry, this page does not support your bowser";
 	exit();
@@ -20,14 +20,13 @@ include_once XOOPS_ROOT_PATH."/header.php";
 date_default_timezone_set("Asia/Hong_Kong"); 
 
 /*Uncomment the following line for tracker shutdown
-	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Maintenance in progress. </font></center>");
+	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Maintenance in progress.</font></center>");
 	$xoopsOption['template_main'] = "show_error.html";
 	include_once XOOPS_ROOT_PATH."/footer.php";//Maintenance in progress - Data will not be updated until 23.03.2014 23:00 GMT +8
 	return;*/
 
-/*Uncomment the following line for announcements	*/
-	$xoopsTpl->append('topmsg',"<center><font color=\"red\">To FGMS maintainer: New FGTracker server is launched. 
-	The New server requires your FGMS be registered in FGTracker. PM hazuki@flightgear forum for details. <br> The only registered FGMS are: 1. MPSERVER01, 2. MPSERVER03, 3. MPSERVER14 and; 4. MPSERVER16 ONLY.</font></center>"); 
+/*Uncomment the following line for announcements*/
+	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Please pay attention to the news regarding <a href=\"/modules/news/article.php?storyid=26\">callsign registration</a></font></center>"); 
 
 
 /*check if server is overloaded*/
@@ -136,6 +135,30 @@ switch ($funct)
 		show_rank($page);
 		include_once XOOPS_ROOT_PATH."/footer.php";
 		break;
+	case "REGCALLSIGN":
+		$xoopsTpl->assign('reCAPTCHA_public',reCAPTCHA_public);
+		$xoopsOption['template_main'] = "reg_callsign.html";
+		include_once XOOPS_ROOT_PATH."/footer.php";
+	break;
+	case "REGCALLSIGN2":
+		$callsign=$_POST["callsign"];
+		$email=$_POST["email"];
+		$grecaptcharesponse=$_POST["g-recaptcha-response"];
+		reg_callsign($callsign, $email, $grecaptcharesponse);
+		$xoopsOption['template_main'] = "reg_callsign2.html";
+		include_once XOOPS_ROOT_PATH."/footer.php";
+	break;
+	case "REGCALLSIGN3":
+		$callsign=$_GET["callsign"];
+		$token=$_GET["token"];
+		reg_callsign2($callsign, $token);
+		$xoopsOption['template_main'] = "reg_callsign3.html";
+		include_once XOOPS_ROOT_PATH."/footer.php";
+	break;
+	case "SHOWCALLSIGN":
+		$xoopsOption['template_main'] = "show_callsign.html";
+		include_once XOOPS_ROOT_PATH."/footer.php";
+	break;
 	/*case "FLIGHTPLAN": not used
 		$fpid=get_request("FPID");
 		$xoopsOption['template_main'] = "show_flight_plan.html";

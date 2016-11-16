@@ -9,7 +9,8 @@
 <{if $no_of_waypoints!=0}>
 <table style="width: 640px;" border="1">
 	<tr><td align="left"><b>Callsign:</b> <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>"><{$callsign}></A></td><td align="left"><b>Type:</b> <{$model}></td></tr>
-	<tr>	<td align="left"><b>Start time:</b> <{$start_time}> 
+	<tr>
+		<td align="left" colspan=2><b>Start time:</b> <{$start_time}> / <{$start_time_utc}> UTC / <{$start_time_local}> LT
 		<{if $dep_airport_country!=null}>
 			<img src="icons/country-small/<{$dep_airport_country}>.png"  height="14" />
 		<{else}>
@@ -19,9 +20,10 @@
 				<a href="?FUNCT=AIRPORT&ICAO=<{$dep_airport}>">(<{$dep_airport}> - <{$dep_airport_name}>)</a>
 		<{else}>(<{$dep_airport}> - <{$dep_airport_name}>)
 		<{/if}>
-		</td><td align="left"><b>Duration:</b> <{$duration}></td>
+		</td>
 	</tr>
-	<tr><td align="left"><b>End time:</b> <{$endtime}>
+	<tr>
+		<td align="left" colspan=2><b>End time:</b> <{$end_time}> / <{$end_time_utc}> UTC / <{$end_time_local}> LT
 		<{if $arr_airport_country!=null}>
 			<img src="icons/country-small/<{$arr_airport_country}>.png"  height="14" />
 		<{else}>
@@ -31,8 +33,12 @@
 				<a href="?FUNCT=AIRPORT&ICAO=<{$arr_airport}>">(<{$arr_airport}> - <{$arr_airport_name}>)</a>
 		<{else}>(<{$arr_airport}> - <{$arr_airport_name}>)
 		<{/if}>
-		
-	</td><td align="left"><b>Total distance:</b> <{$distance}></td></tr>
+		</td>
+	</tr>
+	<tr>
+		<td align="left"><b>Duration:</b> <{$duration}></td>
+		<td align="left"><b>Total distance:</b> <{$distance}></td>
+	</tr>
   <tr><td align="left"><b>Max altitude:</b> <{$maxalt}></td><td align="left"><b>Max ground speed:</b> <{$maxgndspeed}></td></tr>
   <tr><td align="left"><b>Effective flight time:</b> <{$effectiveFlightTime}></td><td align="left"><!--<b>Max Mach:</b> <{$maxmach}>--></td></tr>
 </table>
@@ -97,7 +103,7 @@
   </tr>
   <tr>
 	<td><b>Start time:</b><{$p_starttime}> </td>
-	<td><b>End time:</b><{$p_endtime}> <{if $starttime_raw-$p_endtime_raw<90}>(OK)<{/if}></td>
+	<td><b>End time:</b><{$p_endtime}> <{if $start_time_raw-$p_endtime_raw<90}>(OK)<{/if}></td>
   </tr>
 </table>
 

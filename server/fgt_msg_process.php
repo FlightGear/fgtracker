@@ -112,7 +112,7 @@ class fgt_msg_process
 				if(!isset($this->open_flight_array[$msg_array['callsign']]))
 				{
 					$message="$err_prefix No open flight available";
-					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);	
+					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_NOTICE);	
 					break;
 				}
 				if(intval($msg_array['alt'])<-9000)
@@ -242,6 +242,22 @@ class fgt_msg_process
 			break;
 			case "CONNECT":
 				$err_prefix="Could not CONNECT for callsign \"".$msg_array['callsign']."\" from ".$clients[$this->uuid]['server_ident'].".";
+				
+				if($var['selective_callsign_tracking']===true and !(strpos($msg_array['callsign'],"_TW") ==4 and strlen($msg_array['callsign'])==7))
+				{	/*check if callsign exist in callsigns table*/
+					$sql_parm=Array($msg_array['callsign']);
+					$sql="select * from callsigns where callsign=$1 and (activation_level>0 or (activation_level=0 and Now()-reg_time < INTERVAL '3 days'))";
+					$res=$this->fgt_pg_query_params($sql,$sql_parm);
+					if ($res===false or $res==NULL)
+						return false;
+					if(pg_num_rows($res)<=0)
+					{
+						$message="$err_prefix Callsign not registered or not activated.";
+						$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
+						break;	
+					}
+				}
+				
 				if(isset($this->open_flight_array[$msg_array['callsign']]))
 				{
 					/*Close previous flight*/
@@ -291,6 +307,12 @@ class fgt_msg_process
 			case "DISCONNECT":
 				$err_prefix="Could not DISCONNECT for callsign \"".$msg_array['callsign']."\" from ".$clients[$this->uuid]['server_ident'].".";
 				$timestamp=$msg_array['date']." ".$msg_array['time']." Z";
+				if(!isset($this->open_flight_array[$msg_array['callsign']]))
+				{
+					$message="$err_prefix No open flights available.";
+					$fgt_error_report->fgt_set_error_report($clients[$this->uuid]['server_ident'],$message,E_WARNING);
+					break;
+				}
 				$sql_parm=Array($timestamp,$this->open_flight_array[$msg_array['callsign']]['id']);
 				$sql="UPDATE flights SET status='CLOSED',end_time=$1 WHERE id=$2 AND status='OPEN';";
 				$res=$this->fgt_pg_query_params($sql,$sql_parm);
@@ -307,6 +329,7 @@ class fgt_msg_process
 		}
 		return true;
 	}
+	
 	function msg_end($packet)
 	{	
 		global $fgt_error_report,$clients,$fgt_sql,$var;
