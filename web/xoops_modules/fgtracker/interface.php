@@ -262,7 +262,6 @@ function alterlog($conn,$reply,$callsign)
 			$iparr=explode(".",$username);
 			$username=$iparr[0].".".$iparr[1].".*.*";
 		}
-			
 	
 		$log_array=Array("flight_id"=>pg_result($res,$i,'flight_id'),"operating_user"=>$username, "action"=>pg_result($res,$i,'action'),"time"=>pg_result($res,$i,'when_tunc'),"comments"=>pg_result($res,$i,'usercomments'));
 		$reply["data"]['log'][]=$log_array;
@@ -294,7 +293,12 @@ function flight($conn,$reply,$flightid)
 		$username=pg_result($res,$i,'username');
 		if (substr( $username, 0, 2 ) == "10.")
 			$username="Intranet";
-			
+		else if (filter_var($username, FILTER_VALIDATE_IP))
+		{
+			$iparr=explode(".",$username);
+			$username=$iparr[0].".".$iparr[1].".*.*";
+		}
+
 		$log_array=Array("operating_user"=>$username, "action"=>pg_result($res,$i,'action'),"time"=>pg_result($res,$i,'when_tunc'),"comments"=>pg_result($res,$i,'usercomments'));
 		$reply["data"]['log'][]=$log_array;
 	}
