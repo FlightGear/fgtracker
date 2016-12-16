@@ -56,7 +56,7 @@ function reg_callsign($callsign, $email, $grecaptcharesponse)
 	if($success===false)
 		$xoopsTpl->assign('message',"Failed in callsign registration. Please return and check your input. PM hazuki at flightgear forum if you have any difficuities or you think you faced a bug during registration process.");
 	else
-		$xoopsTpl->assign('message',"Callsign registration succeed. Registration is only completed after you click the confirmation link that sends to your email ($email). Callsign '$callsign' is now being tracked for 72 hours until registration is completed.");
+		$xoopsTpl->assign('message',"Callsign registration succeed. Registration is only completed after you click the verification link that sends to your email ($email). Callsign '$callsign' is now being tracked for 72 hours until registration is completed.");
 }
 
 function reg_callsign2($callsign, $token)
@@ -81,7 +81,11 @@ function reg_callsign2($callsign, $token)
   {
     global $xoopsTpl;
 
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=sizeof($res["data"]["pilot"]);
 
     for($i=0;$i<ceil($nr/2.0);$i++)
@@ -109,7 +113,11 @@ function top10_1Week()
 {
     global $xoopsTpl;
 	
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=lastweek&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=lastweek$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=10;
 
     for($i=0;$i<$nr;$i++)
@@ -128,7 +136,11 @@ function top10_1Month()
 {
     global $xoopsTpl;
 	
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=last30days&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&orderby=last30days$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=10;
 
     for($i=0;$i<$nr;$i++)
@@ -148,7 +160,11 @@ function ten_open_closed_flight()
 	
 
 	//10 RECENT OPENED/CLOSED FLIGHTS
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=recentstateswitch&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=recentstateswitch$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=sizeof($res["data"]["started"]["pilot"]);
 		
     for($i=0;$i<$nr;$i++)
@@ -181,7 +197,11 @@ function show_airport($icao)
 	global $xoopsTpl;
 	
 	/*airport details*/
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=airport&icao=$icao&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=airport&icao=$icao$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 
     $xoopsTpl->assign('icao',$j_res["data"]["icao"]);
 	$xoopsTpl->assign('name',$j_res["data"]["name"]);
@@ -208,7 +228,11 @@ function show_airport($icao)
 	$lon=$j_res["data"]["lon"];
 	
 	/*Pilots in vicinity*/
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livewaypoints&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livewaypoints$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	foreach($j_res["data"]["wpt"] as $wpt)
 	{
 		if ($wpt["current_status"]!="OPEN")
@@ -249,10 +273,14 @@ function show_flights($callsign,$page,$summary,$archive)
 	$xoopsTpl->assign('archive',$archive);
 
     /*Get total no of flights in that result set*/
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
 	if($archive==1)
-		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&archive=true&callsign=$callsign&offset=$offset&ip=".$_SERVER['REMOTE_ADDR']), true);
+		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&archive=true&callsign=$callsign&offset=$offset$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	else
-		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&callsign=$callsign&offset=$offset&ip=".$_SERVER['REMOTE_ADDR']), true);
+		$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flights&callsign=$callsign&offset=$offset$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$xoopsTpl->assign('status',$j_res["data"]["status"]);
 	$num_flights=$j_res["data"]["no_of_flights"];
 	$offset=$j_res["data"]["flight_list_offset"];
@@ -329,8 +357,11 @@ function show_flights($callsign,$page,$summary,$archive)
 	}
 
 	/*callsign log*/
-	//http://mpserver15.flightgear.org/modules/fgtracker/interface.php?action=alterrecord&callsign=callsig
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=alterlog&callsign=$callsign&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=alterlog&callsign=$callsign$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	foreach($j_res["data"]["log"] as $log)
 	{
 		$table4['operating_user']=$log["operating_user"];
@@ -350,9 +381,13 @@ function show_flight($flightid)
     global $xoopsTpl;
     global $xoopsUser;
 
-    /*flight details*/	
+    if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	/*flight details*/	
 	$flightid_escaped=urlencode($flightid);
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flight&flightid=$flightid_escaped&ip=".$_SERVER['REMOTE_ADDR']), true);
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=flight&flightid=$flightid_escaped$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$callsign=$res["data"]["callsign"];
 	$xoopsTpl->assign('flightid',$res["data"]["flight_id"]);
 	$xoopsTpl->assign('callsign',$callsign);
@@ -475,9 +510,13 @@ function show_rank($page)
 {
 	global $xoopsTpl;
 	$no_of_callsigns_per_page=100;
-
 	$offset=$page*$no_of_callsigns_per_page;
-	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&offset=$offset&ip=".$_SERVER['REMOTE_ADDR']), true);
+	
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$j_res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=pilotlist&offset=$offset$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$offset=$j_res["data"]["pilot_list_offset"];
 	$page=intval($offset/$no_of_callsigns_per_page);
 	$num_callsigns=$j_res["data"]["no_of_pilots"];
@@ -500,7 +539,11 @@ function show_tracking_pilots()
 {
 	global $xoopsTpl;
 	
-	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livepilots&ip=".$_SERVER['REMOTE_ADDR']), true);
+	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
+		$jsoncountry="&clientlocation=".urlencode($_SERVER["HTTP_CF_IPCOUNTRY"]);
+	else $jsoncountry="";
+	
+	$res=json_decode(file_get_contents(JSON_DB_LOCATION."?action=livepilots$jsoncountry&ip=".$_SERVER['REMOTE_ADDR']), true);
 	$nr=sizeof($res["data"]["pilot"]);
 
 	$xoopsTpl->assign('no_of_tracking_pilots', $nr);

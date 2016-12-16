@@ -71,11 +71,11 @@ $HEAD .= <<<HEAD
 					FlightGear Multiplayer Server Status<br />
 				</div>
 				<div class="title">
-					mpserver15.flightgear.org<br />Page generated on 
+					FGTracker.ml<br />Page generated on 
 HEAD;
 $HEAD .= date("y-m-d G:i:s").'<br />
 				</div>
-				*"Tracked" means the mpserver is tracked by <a href="http://mpserver15.flightgear.org">mpserver15.flightgear.org</a><br /> Minimun fgms version required for tracking: v0.'.$min_version.'.'.$min_subversion.'.
+				*"Tracked" means the mpserver is tracked by <a href="https://fgtracker.ml">mpserver15.flightgear.org</a><br /> Minimun fgms version required for tracking: v0.'.$min_version.'.'.$min_subversion.'.
 			</td>
 		</tr>
 		<tr class="header">

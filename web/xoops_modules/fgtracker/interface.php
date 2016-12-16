@@ -20,6 +20,7 @@ if (floatval($serverload[0])>10)
 require("interface.files/config.php");
 include_once 'include/flight_report.php';
 include_once 'include/get_nearest_airport.php';
+include_once 'interface.files/client.php';
 include_once 'interface.files/flight_merge.php';
 include_once 'interface.files/flight_delete.php';
 include_once 'interface.files/reg_callsign.php';
@@ -32,49 +33,7 @@ if ($conn ===FALSE)
 	return;
 }
 
-/*set timezone according to client IP http://dev.maxmind.com/geoip/legacy/geolite/*/
-if (isset($_GET['ip']))
-{
-	//echo "ip isset";
-	if (filter_var($_GET['ip'], FILTER_VALIDATE_IP)) 
-		$client['ip']=$_GET['ip'];
-	else $client['ip']=$_SERVER['REMOTE_ADDR'];
-} else
-	$client['ip']=$_SERVER['REMOTE_ADDR'];
-$clienteip=explode('.', $client['ip']);
-$clientintip=  ( 16777216 * $clienteip[0] )
-             + (    65536 * $clienteip[1] )
-             + (      256 * $clienteip[2] )
-             +              $clienteip[3];
-//$sql="SELECT a.country, country_name, (select zone_name from geo_zone c where c.country=a.country LIMIT 1) from geo_ip a left join geo_country b on a.country= b.country where $clientintip between start_intip and end_intip";
-$sql="select * from (SELECT a.country, country_name, (select zone_name from geo_zone c where c.country=a.country LIMIT 1), (select zone_id from geo_zone d where d.country=a.country LIMIT 1) from geo_ip a left join geo_country b on a.country= b.country where $clientintip between start_intip and end_intip) AS e left join geo_timezone as f on e.zone_id=f.zone_id where time_start < extract(epoch from now()) order by time_start desc limit 1;";
-//print $sql;
-$res=pg_query($conn,$sql);
-if ($res!==FALSE)
-	if (pg_result($res,0,'country')===false)
-	{
-		$client['country']=NULL;
-		$client['country_name']="Unknown";
-		$client['timezone']="UTC";
-		$client['timezone_abbr']="UTC";
-	}	
-	else
-	{
-		$client['country']=pg_result($res,0,'country');
-		$client['country_name']=pg_result($res,0,'country_name');
-		$client['timezone']=pg_result($res,0,'zone_name');
-		$client['timezone_abbr']=pg_result($res,0,'abbr');
-	}
-
-else
-{
-	$client['country']=NULL;
-	$client['country_name']="Unknown";
-	$client['timezone']="UTC";
-	$client['timezone_abbr']="UTC";
-}
-$sql="set timezone='".$client['timezone']."'";
-$res=pg_query($conn,$sql);
+setup_client();
 
 /*start*/
 $action=$callsign=$archive=$offset=$flightid=$orderby=$wpt="";
@@ -297,8 +256,8 @@ function flight($conn,$reply,$flightid)
 		{
 			$iparr=explode(".",$username);
 			$username=$iparr[0].".".$iparr[1].".*.*";
-		}
-
+		}	
+		
 		$log_array=Array("operating_user"=>$username, "action"=>pg_result($res,$i,'action'),"time"=>pg_result($res,$i,'when_tunc'),"comments"=>pg_result($res,$i,'usercomments'));
 		$reply["data"]['log'][]=$log_array;
 	}
