@@ -251,7 +251,7 @@
 <{section name=j loop=$tableb}>
 
 
-<tr>
+<tr id="r<{$tableb[j].row}>">
 	<{if $tableb[j].numwpts > 0}>
 		<td valign="center" align="left" BGCOLOR=#F0F0F0><A HREF="?FUNCT=KML&FLIGHTID=<{$tableb[j].id}>"><img height=16 border=0 src="<{$xoops_url}>/modules/fgtracker/icons/ge32.gif"></a></td>
 		<td valign="center" align="right" BGCOLOR=#F0F0F0><A HREF="?FUNCT=FLIGHT&FLIGHTID=<{$tableb[j].id}>"><{$tableb[j].row}>.</a></td>

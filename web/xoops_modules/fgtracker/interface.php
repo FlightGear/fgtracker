@@ -178,6 +178,7 @@ function airport($conn,$reply,$icao)
 function addheader($reply,$time_start,$client)
 {	
 	$time_end = microtime(true);
+	date_default_timezone_set($client['timezone_abbr']);
 	$reply["header"]["request_time"]=date("Y-m-d H:i:sO",$_SERVER['REQUEST_TIME']);
 	$reply["header"]["request_time_raw"]=$_SERVER['REQUEST_TIME'];
 	$reply["header"]["process_time"]=$time_end-$time_start;
@@ -264,7 +265,7 @@ function flight($conn,$reply,$flightid)
 	pg_free_result($res);
 	
 	/*get flight details*/
-	$res=pg_query($conn,"SELECT callsign,model,start_time, start_time AT TIME ZONE 'UTC' AS start_time_utc,EXTRACT(EPOCH FROM start_time) AS start_time_raw,end_time, end_time AT TIME ZONE 'UTC' AS end_time_utc, EXTRACT(EPOCH FROM end_time) AS end_time_raw, justify_hours(end_time-start_time) AS duration,EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw FROM flights_all WHERE id=$flightid_escaped");
+	$res=pg_query($conn,"SELECT callsign, human_string AS model, model AS model_raw, start_time, start_time AT TIME ZONE 'UTC' AS start_time_utc,EXTRACT(EPOCH FROM start_time) AS start_time_raw,end_time, end_time AT TIME ZONE 'UTC' AS end_time_utc, EXTRACT(EPOCH FROM end_time) AS end_time_raw, justify_hours(end_time-start_time) AS duration,EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, \"table\" FROM flights_all left join models AS m ON fg_string=model WHERE id=$flightid_escaped");
     if ($res===false)
 	{
 		$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error');
@@ -276,9 +277,15 @@ function flight($conn,$reply,$flightid)
 		$reply["header"]=Array("code"=>404,"msg"=>"Flight $flightid not found");
 		return $reply;
 	}
-
+	$is_archive=null;
+	$table=pg_result($res,0,'table');
+	if($table=='flights')
+		$is_archive=false;
+	elseif ($table=='flights_archive')
+		$is_archive=true;
 	$callsign=pg_result($res,0,'callsign');
 	$model=pg_result($res,0,'model');
+	$model_raw=pg_result($res,0,'model_raw');
 	$start_time_raw=intval(pg_result($res,0,'start_time_raw'));
 	$start_time=pg_result($res,0,'start_time');
 	$start_time_utc=pg_result($res,0,'start_time_utc');
@@ -287,15 +294,26 @@ function flight($conn,$reply,$flightid)
 	$end_time_raw=intval(pg_result($res,0,'end_time_raw'));
 	$duration=pg_result($res,0,'duration');
 	$duration_raw=intval(pg_result($res,0,'duration_raw'));
-
-	/*$res2=pg_query($conn,"SELECT human_string FROM models WHERE fg_string='$model';");
-	$n=pg_num_rows($res2);
-	if ($n==1) $model=pg_result($res2,0,0);
-	pg_free_result($res2);*/
+	pg_free_result($res);
+	
+	$res=pg_query($conn,"SELECT id FROM flights_all WHERE callsign='$callsign' AND \"table\"='$table' order by id;");
+	$nr=pg_num_rows ( $res );
+	$row=0;
+	while($row<=$nr)
+	{
+		$row++;
+		if(pg_result($res,$row-1,'id')==$flightid_escaped)
+			break;
+	}
+	pg_free_result($res);
 
 	$reply["data"]['flight_id']=intval($flightid);
+	$reply["data"]['is_archive']=$is_archive;
+	$reply["data"]['row']=$row;
+	$reply["data"]['offset']=$nr-$row;
 	$reply["data"]['callsign']=$callsign;
 	$reply["data"]['model']=$model;
+	$reply["data"]['model_raw']=$model_raw;
 	$reply["data"]['start_time']=$start_time;
 	$reply["data"]['start_time_utc']=$start_time_utc;
 	$reply["data"]['start_time_raw']=$start_time_raw;
@@ -304,23 +322,25 @@ function flight($conn,$reply,$flightid)
 	$reply["data"]['end_time_raw']=$end_time_raw;
 	$reply["data"]['duration']=$duration;
 	$reply["data"]['duration_raw']=$duration_raw;
-
-    pg_free_result($res);
 	
-    $res=pg_query($conn,"SELECT time ,EXTRACT(EPOCH FROM time) AS time_raw,longitude,latitude,altitude FROM waypoints_all WHERE flight_id=$flightid_escaped AND (longitude!=0 OR latitude!=0 OR altitude!=0) AND altitude>=".$var["min_alt"]." ORDER BY time;");
+    $res=pg_query($conn,"SELECT time ,EXTRACT(EPOCH FROM time) AS time_raw,longitude,latitude,altitude,heading FROM waypoints_all WHERE flight_id=$flightid_escaped AND (longitude!=0 OR latitude!=0 OR altitude!=0) AND altitude>=".$var["min_alt"]." ORDER BY time;");
     $nr=pg_num_rows($res);
 	
 	$reply["data"]['wpts']=$nr;
 	for ($i=0;$i<$nr;$i++)
     {
-       $time=pg_result($res,$i,"time");
-       $time_raw=intval(pg_result($res,$i,"time_raw"));
-       $lat=floatval(pg_result($res,$i,"latitude"));
-       $lon=floatval(pg_result($res,$i,"longitude"));
-       $alt=floatval(pg_result($res,$i,"altitude"));
+		$time=pg_result($res,$i,"time");
+		$time_raw=intval(pg_result($res,$i,"time_raw"));
+		$lat=floatval(pg_result($res,$i,"latitude"));
+		$lon=floatval(pg_result($res,$i,"longitude"));
+		$alt=floatval(pg_result($res,$i,"altitude"));
+		if(is_null(pg_result($res,$i,"heading")))
+			$hdg=null;
+		else
+			$hdg=floatval(pg_result($res,$i,"heading"));
 	   
-	   $wpt=Array("time"=>$time,"time_raw"=>$time_raw,"lat"=>$lat,"lon"=>$lon,"alt"=>$alt);
-	   $reply["data"]['wpt'][]=$wpt;
+		$wpt=Array("time"=>$time,"time_raw"=>$time_raw,"lat"=>$lat,"lon"=>$lon,"alt"=>$alt,"hdg"=>$hdg);
+		$reply["data"]['wpt'][]=$wpt;
 	}
 	pg_free_result($res);
 	
@@ -359,17 +379,19 @@ function flight($conn,$reply,$flightid)
 	}
 	
 	/*previous flight details*/
-	$res=pg_query($conn,"SELECT id, callsign,model,start_time ,end_time ,EXTRACT(EPOCH FROM start_time) AS start_time_raw,EXTRACT(EPOCH FROM end_time) AS endtime_raw FROM flights_all WHERE id<$flightid_escaped and callsign='$callsign' order by end_time desc limit 1");
+	$res=pg_query($conn,"SELECT id, callsign, human_string AS model, model AS model_raw, start_time , end_time , EXTRACT(EPOCH FROM start_time) AS start_time_raw,EXTRACT(EPOCH FROM end_time) AS endtime_raw FROM flights_all left join models AS m ON fg_string=model WHERE id<$flightid_escaped and callsign='$callsign' order by end_time desc limit 1");
 	if (pg_num_rows($res)!=0)
     {
 		$p_flightid=pg_result($res,0,'id');
 		$reply["data"]["previous_flight"]["flight_id"]=intval($p_flightid);
 		$reply["data"]["previous_flight"]["model"]=pg_result($res,0,'model');
+		$reply["data"]["previous_flight"]["model_raw"]=pg_result($res,0,'model_raw');
 		$reply["data"]["previous_flight"]["start_time"]=pg_result($res,0,'start_time');
 		$reply["data"]["previous_flight"]["start_time_raw"]=intval(pg_result($res,0,'start_time_raw'));
 		$reply["data"]["previous_flight"]["end_time"]=pg_result($res,0,'end_time');
 		$reply["data"]["previous_flight"]["end_time_raw"]=intval(pg_result($res,0,'endtime_raw'));
 		pg_free_result($res);
+	
 		/*previous waypoints (arrival)*/
 		$res=pg_query($conn,"SELECT time,longitude,latitude FROM waypoints_all WHERE flight_id=$p_flightid AND (longitude!=0 OR latitude!=0 OR altitude!=0) ORDER BY time desc limit 1");
 		if (pg_num_rows($res)!=0)
@@ -480,22 +502,19 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 	pg_free_result($res);
 	
 	/*Flight time by type report*/
-	$res=pg_query($conn,"SELECT model,justify_hours(sum(end_time-start_time)) AS duration,EXTRACT(EPOCH FROM sum(end_time-start_time)) AS duration_raw,justify_hours(sum(effective_flight_time)* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM sum(effective_flight_time)* '1 second'::interval) AS effective_flight_time_raw FROM flights_all WHERE callsign='$callsign_escaped' GROUP BY model ORDER BY justify_hours(sum(end_time-start_time)) desc");
+	$res=pg_query($conn,"SELECT model as model_raw,(SELECT human_string FROM models WHERE fg_string=model) AS model, justify_hours(sum(end_time-start_time)) AS duration,EXTRACT(EPOCH FROM sum(end_time-start_time)) AS duration_raw,justify_hours(sum(effective_flight_time)* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM sum(effective_flight_time)* '1 second'::interval) AS effective_flight_time_raw FROM flights_all WHERE callsign='$callsign_escaped' GROUP BY model ORDER BY justify_hours(sum(end_time-start_time)) desc");
     $nr=pg_num_rows($res);
 	for($i=0;$i<$nr;$i++)
     {
         $model=pg_result($res,$i,"model");
+        $model_raw=pg_result($res,$i,"model_raw");
         $duration=pg_result($res,$i,"duration");
 		$duration_raw=intval(pg_result($res,$i,"duration_raw"));
         $effective_flight_time=pg_result($res,$i,"effective_flight_time");
 		$effective_flight_time_raw=intval(pg_result($res,$i,"effective_flight_time_raw"));
 
-        $res2=pg_query($conn,"SELECT human_string FROM models WHERE fg_string='$model';");
-        $n=pg_num_rows($res2);
-        if ($n==1) $model=pg_result($res2,0,0);
-        pg_free_result($res2);
-
         $table1['model']=$model;
+        $table1['model_raw']=$model_raw;
         $table1['duration']=$duration;
         $table1['duration_raw']=$duration_raw;
         $table1['effective_flight_time']=$effective_flight_time;
@@ -539,9 +558,9 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 	
 	/*flight_list*/
 	if ($archive=="true")
-		$res=pg_query($conn,"SELECT id,callsign,model,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw, wpts as numwpts, start_icao, dep.name as start_icaoname, dep.country AS start_country, end_icao, arr.name as end_icaoname, arr.country AS end_country FROM flights_archive AS f left join geo_airports as dep ON start_icao=dep.icao left join geo_airports as arr ON end_icao=arr.icao WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
+		$res=pg_query($conn,"SELECT id,callsign, human_string AS model, model AS model_raw,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw, wpts as numwpts, start_icao, dep.name as start_icaoname, dep.country AS start_country, end_icao, arr.name as end_icaoname, arr.country AS end_country FROM flights_archive AS f left join models AS m ON fg_string=model left join geo_airports as dep ON start_icao=dep.icao left join geo_airports as arr ON end_icao=arr.icao WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
 	else
-		$res=pg_query($conn,"SELECT id,callsign,model,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw, (SELECT count(*) from waypoints where f.id=flight_id) as numwpts, start_icao, dep.name as start_icaoname, dep.country as start_country, end_icao, arr.name as end_icaoname, arr.country as end_country FROM flights AS f left join geo_airports as dep ON start_icao=dep.icao left join geo_airports as arr ON end_icao=arr.icao WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
+		$res=pg_query($conn,"SELECT id,callsign, human_string AS model, model AS model_raw,start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw, end_time-start_time AS duration, EXTRACT(EPOCH FROM end_time-start_time) AS duration_raw, justify_hours(effective_flight_time* '1 second'::interval) AS effective_flight_time, EXTRACT(EPOCH FROM effective_flight_time* '1 second'::interval) AS effective_flight_time_raw, (SELECT count(*) from waypoints where f.id=flight_id) as numwpts, start_icao, dep.name as start_icaoname, dep.country as start_country, end_icao, arr.name as end_icaoname, arr.country as end_country FROM flights AS f left join models AS m ON fg_string=model left join geo_airports as dep ON start_icao=dep.icao left join geo_airports as arr ON end_icao=arr.icao WHERE callsign='$callsign_escaped' ORDER BY start_time DESC LIMIT 100 OFFSET $offset;");
 
     $nr=pg_num_rows($res);
 
@@ -551,6 +570,7 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 		$id=intval(pg_result($res,$i,"id"));
 		$callsign=pg_result($res,$i,"callsign");
 		$model=pg_result($res,$i,"model");
+		$model_raw=pg_result($res,$i,"model_raw");
 		$start_time=pg_result($res,$i,"start_time");
 		$start_time_raw=intval(pg_result($res,$i,"start_time_raw"));
 		$start_icao=pg_result($res,$i,"start_icao");
@@ -567,16 +587,11 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 		$effective_flight_time=pg_result($res,$i,"effective_flight_time");
 		$effective_flight_time_raw=intval(pg_result($res,$i,"effective_flight_time_raw"));
 
-
-		$res2=pg_query($conn,"SELECT human_string FROM models WHERE fg_string='$model';");
-		$n=pg_num_rows($res2);
-		if ($n==1) $model=pg_result($res2,0,0);
-		pg_free_result($res2);
-
 		$table2['row']=$j;
 		$table2['id']=$id;
 		$table2['callsign']=$callsign;
 		$table2['model']=$model;
+		$table2['model_raw']=$model_raw;
 		$table2['start_time']=$start_time;
 		$table2['start_time_raw']=$start_time_raw;
 		$table2['start_location']["icao"]=$start_icao;
@@ -607,15 +622,14 @@ function livepilots($conn,$reply,$callsign,$wpt)
 	
 	if ($callsign=="")
 	{
-		$res=pg_query($conn,"select flight_id, callsign, status, model, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, waypoints.id, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude from flights join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' order by flight_id desc, waypoints.id desc");
-		$nr=pg_num_rows($res);
+		$res=pg_query($conn,"select flight_id, callsign, status, human_string AS model, model AS model_raw, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, waypoints.id, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude, heading from flights left join models AS m ON fg_string=model join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' order by flight_id desc, waypoints.id desc");
 	} else
 	{
 		$callsign_escaped=pg_escape_string($conn,$callsign);
-		$res=pg_query($conn,"select flight_id, callsign, status, model, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, waypoints.id, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude from flights join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' and callsign='$callsign_escaped' order by waypoints.id desc");
-		$nr=pg_num_rows($res);	
+		$res=pg_query($conn,"select flight_id, callsign, status, human_string AS model, model AS model_raw, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, waypoints.id, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude, heading from flights left join models AS m ON fg_string=model join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' and callsign='$callsign_escaped' order by waypoints.id desc");
 	}
-
+	$nr=pg_num_rows($res);
+	
 	if ($nr==0)
 	{
 		$reply["data"]["pilot"]=NULL;
@@ -627,6 +641,7 @@ function livepilots($conn,$reply,$callsign,$wpt)
 	$pilot_data=Array("callsign"=>$current_callsign, 
 		"flight_id"=>pg_result($res,0,'flight_id'), 
 		"model"=>pg_result($res,0,'model'),
+		"model_raw"=>pg_result($res,0,'model_raw'),
 		"start_time"=>pg_result($res,0,'start_time'),
 		"start_time_raw"=>pg_result($res,0,'start_time_raw'));
 	
@@ -650,6 +665,7 @@ function livepilots($conn,$reply,$callsign,$wpt)
 			$pilot_data=Array("callsign"=>$callsign, 
 				"flight_id"=>pg_result($res,$i,'flight_id'), 
 				"model"=>pg_result($res,$i,'model'),
+				"model_raw"=>pg_result($res,$i,'model_raw'),
 				"start_time"=>pg_result($res,$i,'start_time'),
 				"start_time_raw"=>pg_result($res,$i,'start_time_raw'));
 			$current_callsign=$callsign;
@@ -658,17 +674,16 @@ function livepilots($conn,$reply,$callsign,$wpt)
 		if(pg_result($res,$i,"altitude")<$var["min_alt"])
 			continue;	
 		
-		$lat=pg_result($res,$i,"latitude");
-		$lon=pg_result($res,$i,"longitude");
-		$alt=pg_result($res,$i,"altitude");
+		$lat=floatval(pg_result($res,$i,"latitude"));
+		$lon=floatval(pg_result($res,$i,"longitude"));
+		$alt=floatval(pg_result($res,$i,"altitude"));
+		$hdg=floatval(pg_result($res,$i,"heading"));
 		
-
-		
-		if($wpt!="y")
+		if($wpt!="y")/*must be here. Don't think of putting this at above*/
 			continue;
 		$time=pg_result($res,$i,'time');
-		$time_raw=pg_result($res,$i,'time_raw');
-		$pilot_data["wpt"][]=Array('time'=>$time,'time_raw'=>$time_raw,'lat'=>$lat,'lon'=>$lon,'alt'=>$alt);
+		$time_raw=floatval(pg_result($res,$i,'time_raw'));
+		$pilot_data["wpt"][]=Array('time'=>$time,'time_raw'=>$time_raw,'lat'=>$lat,'lon'=>$lon,'alt'=>$alt,'hdg'=>$hdg);
 	}
 	
 	/*write the very last data*/
@@ -686,7 +701,7 @@ function livepilots($conn,$reply,$callsign,$wpt)
 
 function livewaypoints($conn,$reply)
 {
-	$res=pg_query($conn,"select waypoints.id,flight_id,callsign,model,time,EXTRACT(EPOCH FROM time) AS time_raw,latitude,longitude, altitude,status from waypoints join flights on waypoints.flight_id=flights.id order by waypoints.id desc limit 600");
+	$res=pg_query($conn,"select waypoints.id,flight_id,callsign, human_string AS model, model AS model_raw, time,EXTRACT(EPOCH FROM time) AS time_raw,latitude,longitude, altitude,heading,status from waypoints join flights on waypoints.flight_id=flights.id left join models AS m ON fg_string=model order by waypoints.id desc limit 600");
     $nr=pg_num_rows($res);
 	
 	if($res===false)
@@ -703,11 +718,13 @@ function livewaypoints($conn,$reply)
 		$flight_id=intval(pg_result($res,$i,'flight_id'));
 		$callsign=pg_result($res,$i,'callsign');
 		$model=pg_result($res,$i,'model');
+		$model_raw=pg_result($res,$i,'model_raw');
 		$time=pg_result($res,$i,'time');
 		$time_raw=floatval(pg_result($res,$i,'time_raw'));
 		$lat=floatval(pg_result($res,$i,"latitude"));
 		$lon=floatval(pg_result($res,$i,"longitude"));
 		$alt=floatval(pg_result($res,$i,"altitude"));
+		$hdg=floatval(pg_result($res,$i,"heading"));
 		$status=pg_result($res,$i,"status");
 		
 		if (!array_key_exists($callsign,$flight_array))
@@ -722,11 +739,10 @@ function livewaypoints($conn,$reply)
 		$flight_array[$callsign][6]=TRUE;
 		$GML_distance=GML_distance($lat, $lon, $flight_array[$callsign][0], $flight_array[$callsign][1]);
 		
-		//print "$lat, $lon,".$flight_array[$callsign][0].",".$flight_array[$callsign][1];
-		$wpt=Array("id"=>$id,"flight_id"=>$flight_id,"callsign"=>$callsign,"model"=>$model,"time"=>$flight_array[$callsign][4],"time_raw"=>$flight_array[$callsign][5],"lat"=>$flight_array[$callsign][0],"lon"=>$flight_array[$callsign][1],"alt"=>$flight_array[$callsign][2],"bearing"=>$GML_distance[2],"bearingWR"=>$GML_distance[3],"speed_kts"=>$GML_distance[0]/($flight_array[$callsign][5]-$time_raw)*3600,"current_status"=>$flight_array[$callsign][3]);
+		$wpt=Array("id"=>$id,"flight_id"=>$flight_id,"callsign"=>$callsign,"model"=>$model,"model_raw"=>$model_raw,"time"=>$flight_array[$callsign][4],"time_raw"=>$flight_array[$callsign][5],"lat"=>$flight_array[$callsign][0],"lon"=>$flight_array[$callsign][1],"alt"=>$flight_array[$callsign][2],"hdg"=>$hdg,"speed_kts"=>$GML_distance[0]/($flight_array[$callsign][5]-$time_raw)*3600,"current_status"=>$flight_array[$callsign][3]);
 		$reply["data"]['wpt'][]=$wpt;
 	}
-	//print"here"; exit;
+
 	$reply["header"]["code"]=200;
 	$reply["header"]["msg"]="OK";
 	return $reply;
@@ -812,21 +828,21 @@ function pilotlist($conn,$reply,$offset,$orderby)
 function recentstateswitch($conn,$reply)
 {
 	//10 RECENT OPENED FLIGHTS
-	$res=pg_query($conn,"select id,callsign,model,start_time,EXTRACT(EPOCH FROM start_time) AS start_time_raw from flights where status='OPEN' order by start_time DESC LIMIT 10;");
+	$res=pg_query($conn,"select id, callsign, human_string AS model, model as model_raw, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw from flights left join models AS m ON fg_string=model where status='OPEN' order by start_time DESC LIMIT 10;");
 	$nr=pg_num_rows($res);
 	for($i=0;$i<$nr;$i++)
     {
-		$flight=Array('flight_id'=>pg_result($res,$i,"id"),'callsign'=>pg_result($res,$i,"callsign"),'model'=> pg_result($res,$i,"model"),'start_time'=>pg_result($res,$i,"start_time"),'start_time_raw'=>pg_result($res,$i,"start_time_raw"));
+		$flight=Array('flight_id'=>pg_result($res,$i,"id"),'callsign'=>pg_result($res,$i,"callsign"),'model'=> pg_result($res,$i,"model"),'model_raw'=> pg_result($res,$i,"model_raw"),'start_time'=>pg_result($res,$i,"start_time"),'start_time_raw'=>pg_result($res,$i,"start_time_raw"));
 		$reply["data"]["started"]["pilot"][]=$flight;
 	}
 	pg_free_result($res);
 	
 	//10 RECENT ENDED FLIGHTS
-	$res=pg_query($conn,"select id,callsign,model,end_time,EXTRACT(EPOCH FROM end_time) AS end_time_raw from flights where status='CLOSED' order by end_time DESC LIMIT 10;");
+	$res=pg_query($conn,"select id, callsign, human_string AS model, model as model_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw from flights left join models AS m ON fg_string=model where status='CLOSED' order by end_time DESC LIMIT 10;");
 	$nr=pg_num_rows($res);
 	for($i=0;$i<$nr;$i++)
     {
-		$flight=Array('flight_id'=>pg_result($res,$i,"id"),'callsign'=>pg_result($res,$i,"callsign"),'model'=> pg_result($res,$i,"model"),'end_time'=>pg_result($res,$i,"end_time"),'end_time_raw'=>pg_result($res,$i,"end_time_raw"));
+		$flight=Array('flight_id'=>pg_result($res,$i,"id"),'callsign'=>pg_result($res,$i,"callsign"),'model'=> pg_result($res,$i,"model"),'model_raw'=> pg_result($res,$i,"model_raw"), 'end_time'=>pg_result($res,$i,"end_time"),'end_time_raw'=>pg_result($res,$i,"end_time_raw"));
 		$reply["data"]["ended"]["pilot"][]=$flight;
 	}
 	pg_free_result($res);
@@ -835,6 +851,4 @@ function recentstateswitch($conn,$reply)
 	$reply["header"]["msg"]="OK";
 	return $reply;
 }
-
-
 ?>

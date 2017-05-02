@@ -8,7 +8,7 @@
 
 <{if $no_of_waypoints!=0}>
 <table style="width: 640px;" border="1">
-	<tr><td align="left"><b>Callsign:</b> <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}>"><{$callsign}></A></td><td align="left"><b>Type:</b> <{$model}></td></tr>
+	<tr><td align="left"><b>Callsign:</b> <A HREF="?FUNCT=FLIGHTS&CALLSIGN=<{$callsign}><{if $is_archive==true}>&ARCHIVE=TRUE<{/if}>&PAGE=<{$page}>#r<{$row}>"><{$callsign}></A></td><td align="left"><b>Type:</b> <{$model}> <{$model_raw}></td></tr>
 	<tr>
 		<td align="left" colspan=2><b>Start time:</b> <{$start_time}> / <{$start_time_utc}> UTC / <{$start_time_local}> LT
 		<{if $dep_airport_country!=null}>
@@ -55,6 +55,7 @@
 		<option value="Multiple wpts at the same time">Multiple wpts</option>
 		<option value="Low Effective flight rate">Low EFR</option>
 		<option value="Pilot request">Pilot request</option>
+		<option value="Non-registered Callsign">Non-registered Callsign</option>
 		</select>
 		<input type="submit" NAME="submit" VALUE="Delete" />
 		<input type="hidden" NAME="flightid" VALUE="<{$flightid}>" />

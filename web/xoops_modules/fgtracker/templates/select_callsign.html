@@ -13,9 +13,9 @@
 <p><a href="?FUNCT=REGCALLSIGN">Register your callsign</a> in order to let FGTracker to track your flights</p>
 </form>
 <table style="width: 600px;">
-	<tr><TH COLSPAN=11><center>TRACKING PILOTS (<{$no_of_tracking_pilots}>)</center></th></tr>
+	<tr><TH COLSPAN=7><center>TRACKING PILOTS (<{$no_of_tracking_pilots}>)</center></th></tr>
 	<tr>
-		<th>Callsign</th><th>Model</th><th>Dep</th><td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th><td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th>
+		<th>Callsign</th><th>Model</th><th>Dep</th><td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th><!--<td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th>-->
 	</tr>
 	<{section name=i loop=$tracking_pilots}>
 	<tr><td><a href="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id0}>"><{$tracking_pilots[i].callsign0}></a></td>
@@ -53,7 +53,7 @@
 			<{/if}>
 		<{/if}>
 	</td>
-	<td>&nbsp;</td>
+	<!--<td>&nbsp;</td>
 	<td><a href="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id2}>"><{$tracking_pilots[i].callsign2}></a></td>
 	<td><{$tracking_pilots[i].model2}></td>
 	<td><{if $tracking_pilots[i].model2!=null}>
@@ -65,7 +65,7 @@
 			<{else}><{$tracking_pilots[i].icao2}>
 			<{/if}>
 		<{/if}>
-	</td>
+	</td>-->
 	</tr>
 	
 	<{/section}>
