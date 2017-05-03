@@ -296,21 +296,11 @@ function flight($conn,$reply,$flightid)
 	$duration_raw=intval(pg_result($res,0,'duration_raw'));
 	pg_free_result($res);
 	
-	$res=pg_query($conn,"SELECT id FROM flights_all WHERE callsign='$callsign' AND \"table\"='$table' order by id;");
-	$nr=pg_num_rows ( $res );
-	$row=0;
-	while($row<=$nr)
-	{
-		$row++;
-		if(pg_result($res,$row-1,'id')==$flightid_escaped)
-			break;
-	}
-	pg_free_result($res);
-
+	$row_offset=get_flight_row_offset($conn,$flightid,$callsign,$table);
 	$reply["data"]['flight_id']=intval($flightid);
 	$reply["data"]['is_archive']=$is_archive;
-	$reply["data"]['row']=$row;
-	$reply["data"]['offset']=$nr-$row;
+	$reply["data"]['row']=$row_offset[0];
+	$reply["data"]['offset']=$row_offset[1];
 	$reply["data"]['callsign']=$callsign;
 	$reply["data"]['model']=$model;
 	$reply["data"]['model_raw']=$model_raw;
@@ -616,6 +606,24 @@ function flights($conn,$reply,$callsign,$archive,$offset)
 
 }
 
+function get_flight_row_offset($conn,$flightid,$callsign,$table)
+{
+	$res=pg_query($conn,"SELECT id FROM flights_all WHERE callsign='$callsign' AND \"table\"='$table' order by id;");
+	if ($res===false)
+		return Array(false,false);
+	
+	$nr=pg_num_rows ( $res );
+	$row=0;
+	while($row<=$nr)
+	{
+		$row++;
+		if(pg_result($res,$row-1,'id')==$flightid)
+			break;
+	}
+	pg_free_result($res);
+	return Array($row,$nr-$row);
+}
+
 function livepilots($conn,$reply,$callsign,$wpt)
 {
 	global $var;
@@ -836,7 +844,7 @@ function recentstateswitch($conn,$reply)
 		$reply["data"]["started"]["pilot"][]=$flight;
 	}
 	pg_free_result($res);
-	
+
 	//10 RECENT ENDED FLIGHTS
 	$res=pg_query($conn,"select id, callsign, human_string AS model, model as model_raw, end_time, EXTRACT(EPOCH FROM end_time) AS end_time_raw from flights left join models AS m ON fg_string=model where status='CLOSED' order by end_time DESC LIMIT 10;");
 	$nr=pg_num_rows($res);
@@ -846,7 +854,7 @@ function recentstateswitch($conn,$reply)
 		$reply["data"]["ended"]["pilot"][]=$flight;
 	}
 	pg_free_result($res);
-	
+
 	$reply["header"]["code"]=200;
 	$reply["header"]["msg"]="OK";
 	return $reply;
