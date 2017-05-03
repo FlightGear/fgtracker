@@ -7,8 +7,9 @@ include_once 'flight_kml.php';
 ///////////////////////////////////////////////////////////////////////
 // DELETE_FLIGHT (JSON_DB)
 ///////////////////////////////////////////////////////////////////////
-function delete_flight($flightid,$token,$username,$callsign,$pflightid,$usercomments)
+function delete_flight($flightid,$token,$username,$callsign,$usercomments)
 {
+	$flights_per_page=100;
 	$usercomments=urlencode($usercomments);
 	$url=JSON_DB_LOCATION."?action=delflight&flightid=$flightid&username=$username&callsign=$callsign&token=$token&usercomments=$usercomments";
 	$res=json_decode(file_get_contents($url), true);
@@ -16,7 +17,20 @@ function delete_flight($flightid,$token,$username,$callsign,$pflightid,$usercomm
 	if($res["data"]["ok"]===false or !isset($res["data"]["ok"]))
 		$reply="Request: $url<br />Server reply: Delete Failed - ".$res["data"]["msg"];
 	else $reply="Server reply: Delete OK - ".$res["data"]["msg"];
-	$reply.="<br/> Return to <a href=\"?FUNCT=FLIGHTS&CALLSIGN=$callsign\">$callsign's Flights list</a> or <a href=\"?FUNCT=FLIGHT&FLIGHTID=$pflightid\">$callsign's previous flight</a>";
+
+	$archive_url="";
+	$page_url="";
+	$bookmark="#flightslist";
+	if(isset($res["data"]["previous_flight"]))
+	{
+		$page_url="&PAGE=".ceil($res["data"]["previous_flight"]["offset"]/$flights_per_page);
+		$bookmark="#r".$res["data"]["previous_flight"]["row"];
+		if($res["data"]["previous_flight"]["is_archive"]===true)
+			$archive_url="&ARCHIVE=TRUE";
+		$reply.="<br/>Return to <a href=\"?FUNCT=FLIGHT&FLIGHTID=".$res["data"]["previous_flight"]["flight_id"]."\">$callsign's previous flight</a> or";
+	}
+	$reply.=" <a href=\"?FUNCT=FLIGHTS&CALLSIGN=$callsign$archive_url$page_url$bookmark\">$callsign's Flights list</a>";
+
 	return $reply;
 }
 
@@ -77,8 +91,8 @@ function reg_callsign2($callsign, $token)
 ///////////////////////////////////////////////////////////////////////
 // SELECT_CALLSIGN (JSON_DB)
 ///////////////////////////////////////////////////////////////////////
-  function select_callsign()
-  {
+function select_callsign()
+{
     global $xoopsTpl;
 
 	if (isset($_SERVER["HTTP_CF_IPCOUNTRY"]))
@@ -104,7 +118,7 @@ function reg_callsign2($callsign, $token)
 	$xoopsTpl->assign('request_location_name',$res['header']['request_location_name']);
 	$xoopsTpl->assign('request_timezone_abbr',$res['header']['request_timezone_abbr']);
 	$xoopsTpl->assign('request_timezone',$res['header']['request_timezone']);
-  }
+}
 
 ///////////////////////////////////////////////////////////////////////
 // TOP10_1WEEK (JSON_DB)
@@ -577,6 +591,7 @@ function show_tracking_pilots()
 	$xoopsTpl->assign('no_of_tracking_pilots', $nr);
 	for($i=0;$i<$nr;$i=$i+2)
 	{
+		$tracking_pilots=NULL;
 		$tracking_pilots['callsign0']=$res["data"]["pilot"][$i]["callsign"];
 		if(is_null($res["data"]["pilot"][$i]["model"]))
 			$tracking_pilots['model0']="(".$res["data"]["pilot"][$i]["model_raw"].")";

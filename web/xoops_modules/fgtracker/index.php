@@ -26,7 +26,7 @@ date_default_timezone_set("Asia/Hong_Kong");
 	return;*/
 
 /*Uncomment the following line for announcements
-	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Starting from 2016.12.01 0000UTC, FGTracker will only accept connections from FGMS with version >= 0.12.0 (v0.12.0RC4, v0.12.0RC5 and v0.12.0).  Check <a href=\"../../mpserverstatus\">here</a> for knowing which mpserver meets the requirements.</font></center>"); */
+	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Enhancement in progress. Some model name would seemed lost ATM.</font></center>");*/
 
 
 /*check if server is overloaded*/
@@ -91,10 +91,8 @@ switch ($funct)
 			$username=$_POST["username"];
 			$token=$_POST["token"];
 			$callsign=$_POST["callsign"];
-			$pflightid=$_POST["pflightid"];
 			$usercomments=$_POST["usercomments"];
-			//print $usercomments; exit();
-			$xoopsTpl->append('topmsg',delete_flight($flightid,$token,$username,$callsign,$pflightid,$usercomments));
+			$xoopsTpl->append('topmsg',delete_flight($flightid,$token,$username,$callsign,$usercomments));
 		}
 			
 		if ($_POST["action"]=="merge_flight")

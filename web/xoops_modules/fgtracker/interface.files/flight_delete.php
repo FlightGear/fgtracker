@@ -49,6 +49,25 @@ function delflight($conn,$reply,$flightid,$token,$username,$callsign,$usercommen
 	{
 		$reply["data"]["ok"]=TRUE;
 		$reply["data"]["msg"]="Success";
+		/*obtain previous record*/
+		$res=pg_query($conn,"SELECT id,\"table\" FROM flights_all where id < $flightid_escaped  and callsign='$callsign_escaped' order by id desc LIMIT 1;");
+		$nr=pg_num_rows ( $res );
+		if ($nr==1)
+		{
+			$table=pg_result($res,0,'table');
+			if($table=='flights')
+				$is_archive=false;
+			elseif ($table=='flights_archive')
+				$is_archive=true;
+			$reply["data"]["previous_flight"]["flight_id"]=pg_result($res,0,'id');
+			$reply["data"]["previous_flight"]["is_archive"]=$is_archive;
+			pg_free_result($res);
+			
+			$row_offset=get_flight_row_offset($conn,$reply["data"]["previous_flight"]["flight_id"],$callsign_escaped,$table);
+			$reply["data"]["previous_flight"]['row']=$row_offset[0];
+			$reply["data"]["previous_flight"]['offset']=$row_offset[1];
+		}
+		
 	}else
 	{
 		$reply["data"]["ok"]=FALSE;
