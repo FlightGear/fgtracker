@@ -1,13 +1,13 @@
 <?php
 /*
-FGTracker server Version 2.2
+FGTracker server Version 2.3a1
 
 Author								: Hazuki Amamiya <FlightGear forum nick Hazuki>
 License								: GPL Version 3
 OS requirement 						: Linux/Windows or any other OS with PHP and PostgreSQL
-DB requirement						: PostgreSQL v9 or above
+DB requirement						: PostgreSQL v9.5 or above
 PHP requirement						: PHP 5.1 or above (With php-cli module installed)
-Developed and tested under this env	: Debian 8.3/php 5.6.17+dfsg-0+deb8u1/PostgreSQL 9.4.5-0+deb8u1
+Developed and tested under this env	: Debian 8.7/5.6.30+dfsg-0+deb8u1/PostgreSQL 9.6.2-1.pgdg80+1
 
 See README.txt for more information
 */
@@ -21,14 +21,15 @@ require("fgt_error_report.php");
 $fgt_error_report=new fgt_error_report();
 
 $var['os'] = strtoupper(PHP_OS);
-$var['fgt_ver']="2.2";
+$var['fgt_ver']="2.3a1";
 $var['min_php_ver']='5.1';
+$var['min_postgres_ver']='9.5';
 $var['exitflag']=false;
 $var['ping_interval']=60;/*check timeout interval. Default(=60)*/
 $var['ident_interval']=5;/*check timeout interval for not yet identified connection. Default(=5)*/
 $var['appname']="FGTracker V".$var['fgt_ver'];
 
-$message="FGTracker Version ".$var['fgt_ver']." in ".$var['os']." with PHP ".PHP_VERSION;
+$message="FGTracker version ".$var['fgt_ver']." in ".$var['os']." with PHP ".PHP_VERSION;
 $fgt_error_report->fgt_set_error_report("CORE",$message,E_ERROR);
 
 if (version_compare(PHP_VERSION, $var['min_php_ver'], '<')) {

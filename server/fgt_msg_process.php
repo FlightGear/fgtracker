@@ -132,7 +132,7 @@ class fgt_msg_process
 				if(!isset($msg_array['heading']))
 					$msg_array['heading']=null;
 				$sql_parm=Array($this->open_flight_array[$msg_array['callsign']]['id'],$timestamp,$msg_array['lat'],$msg_array['lon'],$msg_array['alt'],$msg_array['heading']);
-				$sql="INSERT INTO waypoints(flight_id,time,latitude,longitude,altitude,heading)VALUES ($1,$2,$3,$4,$5,$6);";
+				$sql="INSERT INTO waypoints(flight_id,time,latitude,longitude,altitude,heading)VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT ON CONSTRAINT \"waypoints-pkey\" DO NOTHING;";
 				
 				$res=$this->fgt_pg_query_params($sql,$sql_parm);
 				if ($res===false or $res==NULL)

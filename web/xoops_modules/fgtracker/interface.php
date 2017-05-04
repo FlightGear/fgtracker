@@ -33,6 +33,7 @@ if ($conn ===FALSE)
 	return;
 }
 
+$res=pg_query($conn1,"SET application_name = 'FGTracker interface';");
 setup_client();
 
 /*start*/
@@ -315,7 +316,12 @@ function flight($conn,$reply,$flightid)
 	
     $res=pg_query($conn,"SELECT time ,EXTRACT(EPOCH FROM time) AS time_raw,longitude,latitude,altitude,heading FROM waypoints_all WHERE flight_id=$flightid_escaped AND (longitude!=0 OR latitude!=0 OR altitude!=0) AND altitude>=".$var["min_alt"]." ORDER BY time;");
     $nr=pg_num_rows($res);
-	
+	if ($res===false)
+	{
+		unset ($reply["data"]);
+		$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error');
+		return $reply;
+	}
 	$reply["data"]['wpts']=$nr;
 	for ($i=0;$i<$nr;$i++)
     {
@@ -630,11 +636,11 @@ function livepilots($conn,$reply,$callsign,$wpt)
 	
 	if ($callsign=="")
 	{
-		$res=pg_query($conn,"select flight_id, callsign, status, human_string AS model, model AS model_raw, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, waypoints.id, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude, heading from flights left join models AS m ON fg_string=model join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' order by flight_id desc, waypoints.id desc");
+		$res=pg_query($conn,"select flight_id, callsign, status, human_string AS model, model AS model_raw, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude, heading from flights left join models AS m ON fg_string=model join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' order by flight_id desc, waypoints.time desc");
 	} else
 	{
 		$callsign_escaped=pg_escape_string($conn,$callsign);
-		$res=pg_query($conn,"select flight_id, callsign, status, human_string AS model, model AS model_raw, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, waypoints.id, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude, heading from flights left join models AS m ON fg_string=model join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' and callsign='$callsign_escaped' order by waypoints.id desc");
+		$res=pg_query($conn,"select flight_id, callsign, status, human_string AS model, model AS model_raw, start_time, EXTRACT(EPOCH FROM start_time) AS start_time_raw, time, EXTRACT(EPOCH FROM start_time) AS time_raw, latitude, longitude, altitude, heading from flights left join models AS m ON fg_string=model join waypoints on waypoints.flight_id=flights.id where status='OPEN' and NOW()-start_time < INTERVAL '2 DAY' and callsign='$callsign_escaped' order by waypoints.time desc");
 	}
 	$nr=pg_num_rows($res);
 	
@@ -709,7 +715,7 @@ function livepilots($conn,$reply,$callsign,$wpt)
 
 function livewaypoints($conn,$reply)
 {
-	$res=pg_query($conn,"select waypoints.id,flight_id,callsign, human_string AS model, model AS model_raw, time,EXTRACT(EPOCH FROM time) AS time_raw,latitude,longitude, altitude,heading,status from waypoints join flights on waypoints.flight_id=flights.id left join models AS m ON fg_string=model order by waypoints.id desc limit 600");
+	$res=pg_query($conn,"select flight_id,callsign, human_string AS model, model AS model_raw, time,EXTRACT(EPOCH FROM time) AS time_raw,latitude,longitude, altitude,heading,status from waypoints join flights on waypoints.flight_id=flights.id left join models AS m ON fg_string=model order by time desc, flight_id desc limit 600");
     $nr=pg_num_rows($res);
 	
 	if($res===false)
@@ -722,7 +728,6 @@ function livewaypoints($conn,$reply)
 	$flight_array=Array();/*to store temporary data*/
 	for ($i=0;$i<$nr;$i++)
     {
-		$id=intval(pg_result($res,$i,'id'));
 		$flight_id=intval(pg_result($res,$i,'flight_id'));
 		$callsign=pg_result($res,$i,'callsign');
 		$model=pg_result($res,$i,'model');

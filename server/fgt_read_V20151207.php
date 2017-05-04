@@ -99,7 +99,9 @@ class fgt_read_V20151207
 					$this->catch_phase_error(false,$line); 
 				else if($data[0]=="POSITION")
 				{
-					if(sizeof($data)!=11 or is_numeric($data[3])===false or is_numeric($data[4])===false or is_numeric($data[5])===false or is_numeric($data[6])===false or strpos($data[9] ,"-")!= 4)
+					if(sizeof($data)!=11)
+						$this->catch_phase_error(false,$line);
+					else if(is_numeric($data[3])===false or is_numeric($data[4])===false or is_numeric($data[5])===false or is_numeric($data[6])===false or strpos($data[9] ,"-")!= 4)
 						$this->catch_phase_error(true,$line);
 					else
 					{
