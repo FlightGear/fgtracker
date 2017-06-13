@@ -59,7 +59,7 @@ $HEAD .= <<<HEAD
   <script type="text/javascript">
     function check_mpservers() { $ONLOAD
     }
-	setInterval('check_mpservers()',60000);
+	setInterval('check_mpservers()',15000);
   </script>
 </head>
 
@@ -71,12 +71,11 @@ $HEAD .= <<<HEAD
 					FlightGear Multiplayer Server Status<br />
 				</div>
 				<div class="title">
-                Page started on 
+					FGTracker.ml<br />Page generated on 
 HEAD;
 $HEAD .= date("y-m-d G:i:s").'<br />
 				</div>
-				*"Tracked" means the mpserver is tracked by <a href="http://mpserver15.flightgear.org">mpserver15.flightgear.org</a>, min. : v0.10.'.$min_subversion.'.
-                Host site: '.$host_site.'.
+				*"Tracked" means the mpserver is tracked by <a href="https://fgtracker.ml">mpserver15.flightgear.org</a><br /> Minimun fgms version required for tracking: v0.'.$min_version.'.'.$min_subversion.'.
 			</td>
 		</tr>
 		<tr class="header">

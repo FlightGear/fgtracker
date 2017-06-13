@@ -3,19 +3,19 @@
 <{section name=k loop=$topmsg}>
 <{$topmsg[k]}>
 <{/section}>
- <iframe height="400px" width="600px" src="http://mpserver15.flightgear.org/maps/fullmap.php"></iframe>
+ <iframe height="400px" width="600px" src="/maps/fullmap.php"></iframe>
 <H1>Select callsign</H1>
 <form METHOD=GET ACTION="">
 <INPUT TYPE=HIDDEN NAME="FUNCT" VALUE="FLIGHTS">
 <table style="width: 400px;">
 	<tr><td WIDTH=150 ALIGN=RIGHT BGCOLOR=#F0F0F0>Enter your callsign:</td><td BGCOLOR=#F0F0F0><INPUT TYPE=TEXT NAME="CALLSIGN"><INPUT VALUE="GO" TYPE=SUBMIT></td></tr>
 </table>
-<p><a href=\"/modules/news/article.php?storyid=26\">Register your callsign</a> in order to let FGTracker to track your flights</p>
+<p><a href="?FUNCT=REGCALLSIGN">Register your callsign</a> in order to let FGTracker to track your flights</p>
 </form>
 <table style="width: 600px;">
-	<tr><TH COLSPAN=11><center>TRACKING PILOTS (<{$no_of_tracking_pilots}>)</center></th></tr>
+	<tr><TH COLSPAN=7><center>TRACKING PILOTS (<{$no_of_tracking_pilots}>)</center></th></tr>
 	<tr>
-		<th>Callsign</th><th>Model</th><th>Dep</th><td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th><td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th>
+		<th>Callsign</th><th>Model</th><th>Dep</th><td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th><!--<td>&nbsp;</td><th>Callsign</th><th>Model</th><th>Dep</th>-->
 	</tr>
 	<{section name=i loop=$tracking_pilots}>
 	<tr><td><a href="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id0}>"><{$tracking_pilots[i].callsign0}></a></td>
@@ -53,7 +53,7 @@
 			<{/if}>
 		<{/if}>
 	</td>
-	<td>&nbsp;</td>
+	<!--<td>&nbsp;</td>
 	<td><a href="?FUNCT=FLIGHT&FLIGHTID=<{$tracking_pilots[i].id2}>"><{$tracking_pilots[i].callsign2}></a></td>
 	<td><{$tracking_pilots[i].model2}></td>
 	<td><{if $tracking_pilots[i].model2!=null}>
@@ -65,7 +65,7 @@
 			<{else}><{$tracking_pilots[i].icao2}>
 			<{/if}>
 		<{/if}>
-	</td>
+	</td>-->
 	</tr>
 	
 	<{/section}>
@@ -125,6 +125,6 @@ MPSERVER15 determines your current location appears to be
 <{if $request_location!=null}>
 in <{$request_location_name}> <img src="icons/country-small/<{$request_location}>.png"  height="20" /> (<{$request_timezone_abbr}> - <{$request_timezone}>)
 <{else}>unknown <img src="icons/country-small/unk.png"  height="20" /> (<{$request_timezone_abbr}>)
-<{/if}> according to your IP "<{$request_ip}>". <br />Enable location request from MPSERVER15 to let MPSERVER15 providing you location-based service.
+<{/if}> according to information from Cloudflare. Your IP is "<{$request_ip}>". <br />
 
 </CENTER>   

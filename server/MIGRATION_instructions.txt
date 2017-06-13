@@ -1,5 +1,11 @@
 Migration Instructions of fgtracker
 
+From v2.2 to v2.3
+[program]	Recommended overwrite all files
+[db]		view waypoints_all recreated with column "id" dropped
+[db]		table waypoints altered. Dropped column "id". All indexes and primary key are dropped and recreated. Please check the sql file for details
+[db]		table waypoints_archive altered. Dropped column "id". Primary key are dropped. Please check the sql file for details
+
 From v2.1 to v2.2
 [db]		table "callsigns" added
 [db]		rules "del_wp" in table "flights" and "flights_archive" modified

@@ -41,7 +41,7 @@ class fgt_postgres{
 		}
 		/*connect to Server 1*/
 		$message="Connecting to postgres server - ".$var['postgre_conn']['desc'];
-		$fgt_error_report->fgt_set_error_report("CORE",$message,E_NOTICE);	
+		$fgt_error_report->fgt_set_error_report("PSQL",$message,E_NOTICE);	
 
 		if ($var['postgre_conn']['host']=="")
 		$conn1=pg_connect("dbname=".$var['postgre_conn']['db']." user=".$var['postgre_conn']['uname']." password=".$var['postgre_conn']['pass'] ." connect_timeout=5",PGSQL_CONNECT_FORCE_NEW);
@@ -50,7 +50,7 @@ class fgt_postgres{
 		if ($conn1 ===FALSE)
 		{
 			$message="Failed to connect to postgres server - ".$var['postgre_conn']['desc'].". Will retry in 30 seconds";
-			$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);	
+			$fgt_error_report->fgt_set_error_report("PSQL",$message,E_WARNING);	
 			$last_failed=time();
 			while (1)
 			{
@@ -67,8 +67,19 @@ class fgt_postgres{
 		}
 		
 		$message="Connected to postgres server - ".$var['postgre_conn']['desc'];
-		$fgt_error_report->fgt_set_error_report("CORE",$message,E_WARNING);	
+		$fgt_error_report->fgt_set_error_report("PSQL",$message,E_WARNING);	
 		
+		/*Check if postgresSQL version is new enough*/
+		$res=pg_query($conn1,"select split_part( version(), ' ' , 2 ) AS ver;");
+		$postgres_ver=pg_result($res,0,"ver");
+		$message="PostgreSQL server version - ".$postgres_ver;
+		$fgt_error_report->fgt_set_error_report("PSQL",$message,E_WARNING);	
+		if (version_compare($postgres_ver, $var['min_postgres_ver'], '<'))
+		{
+			$message="FATAL! - Your PostgreSQL version ($postgres_ver) is too old for this server. Please upgrade to version ".$var['min_postgres_ver']. " or newer";
+			$fgt_error_report->fgt_set_error_report("PSQL",$message,E_ERROR);	
+			exit;
+		}
 		$res=pg_query($conn1,"SET TIMEZONE TO 'UTC';");
 		$res=pg_query($conn1,"SET application_name = '$appname';");
 		pg_free_result($res);
@@ -113,13 +124,13 @@ class fgt_postgres{
 		if(pg_close ($this->conn)===true)
 		{	
 			$message="Postgres server - ".$var['postgre_conn']['desc']." closed";
-			$this->fgt_set_error_report("CORE",$message,E_WARNING);
+			$this->fgt_set_error_report("PSQL",$message,E_WARNING);
 			$this->connected=false;
 			return true;
 		}else
 		{
 			$message="Failed to close postgres server - ".$var['postgre_conn']['desc'];
-			$this->fgt_set_error_report("CORE",$message,E_ERROR);
+			$this->fgt_set_error_report("PSQL",$message,E_ERROR);
 			return false;
 		}
 			

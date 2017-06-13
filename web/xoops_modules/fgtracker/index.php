@@ -25,8 +25,8 @@ date_default_timezone_set("Asia/Hong_Kong");
 	include_once XOOPS_ROOT_PATH."/footer.php";//Maintenance in progress - Data will not be updated until 23.03.2014 23:00 GMT +8
 	return;*/
 
-/*Uncomment the following line for announcements*/
-	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Please pay attention to the news regarding <a href=\"/modules/news/article.php?storyid=26\">callsign registration</a></font></center>"); 
+/*Uncomment the following line for announcements
+	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Enhancement in progress. Some model name would seemed lost ATM.</font></center>");*/
 
 
 /*check if server is overloaded*/
@@ -44,6 +44,10 @@ if (date('H')=='01' and date('i')<45)
 {
 	$xoopsTpl->append('topmsg',"<center><font color=\"red\">Maintenance in Progress. Data might not be updated until it is finished.</font></center>");
 }
+
+/*Set up client ip address*/
+if(cloudflare)
+	$_SERVER['REMOTE_ADDR']=$_SERVER['HTTP_CF_CONNECTING_IP'];
 
 $funct=get_request("FUNCT");
 
@@ -87,10 +91,8 @@ switch ($funct)
 			$username=$_POST["username"];
 			$token=$_POST["token"];
 			$callsign=$_POST["callsign"];
-			$pflightid=$_POST["pflightid"];
 			$usercomments=$_POST["usercomments"];
-			//print $usercomments; exit();
-			$xoopsTpl->append('topmsg',delete_flight($flightid,$token,$username,$callsign,$pflightid,$usercomments));
+			$xoopsTpl->append('topmsg',delete_flight($flightid,$token,$username,$callsign,$usercomments));
 		}
 			
 		if ($_POST["action"]=="merge_flight")

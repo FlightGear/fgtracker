@@ -99,16 +99,14 @@ if(isset($tracker)) {
 		else
 		{
 			$subversion=explode(".", $version);
-			//print "aa".$subversion[1];
-			if (intval($subversion[2])<$min_subversion)
+			if (intval($subversion[1])>=$min_version)
 			{
-				if (intval($subversion[1])>$min_version)
+				if (intval($subversion[2])>=$min_subversion)
 					$tracked = "Yes";
-				else
-					$tracked = "No";
-			}
+				else $tracked = "No";
+			}	
 			else
-				$tracked = "Yes";
+					$tracked = "No";
 		}
 	}
 	else if (stripos($name,'MPSERVER15')!==FALSE)

@@ -5,6 +5,7 @@ FGTracker Web
 -xoops_modules/fgtracker: FGTracker (XOOPS modules)
 -xoops_modules/fgtracker/interface.php: FGTracker API
 -mpserverstatus: Multiplayer server status page
+-maps: Useful map(s) which gets data from FGTracker
 
 2. Database parameters
 You have to set Database parameters (e.g. DB username and password) in the 
