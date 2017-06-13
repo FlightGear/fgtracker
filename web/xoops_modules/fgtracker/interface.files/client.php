@@ -40,7 +40,8 @@ function setup_client()
 	$sql="select * from (select zone_id, zone_name, z.country, country_name from geo_zone z join geo_country c on z.country=c.country where z.country ='".$client['country']."' LIMIT 1) AS e left join geo_timezone as f on e.zone_id=f.zone_id where time_start < extract(epoch from now()) order by time_start desc limit 1;";
 
 	$res=pg_query($conn,$sql);
-	if ($res!==FALSE)
+	if ($res!==FALSE and pg_num_rows ( $res )>0)
+	{
 		if (pg_result($res,0,'country')===false)
 		{
 			$client['country']=NULL;
@@ -53,9 +54,9 @@ function setup_client()
 			$client['country']=pg_result($res,0,'country');
 			$client['country_name']=pg_result($res,0,'country_name');
 			$client['timezone']=pg_result($res,0,'zone_name');
-			$client['timezone_abbr']=pg_result($res,0,'abbr');
+			$client['timezone_abbr']=trim(pg_result($res,0,'abbr'));
 		}
-
+	}
 	else
 	{
 		$client['country']=NULL;

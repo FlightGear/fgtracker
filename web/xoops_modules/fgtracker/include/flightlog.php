@@ -320,7 +320,7 @@ function show_flights($callsign,$page,$summary,$archive)
 	$xoopsTpl->assign('effective_flight_time',$j_res["data"]["effective_flight_time"]);
 	$xoopsTpl->assign('effective_flight_rate', round($j_res["data"]["effective_flight_time_raw"]/$j_res["data"]["total_flight_time_raw"]*100,3)."%");
 	$xoopsTpl->assign('rank',$j_res["data"]["rank"]);
-	$xoopsTpl->assign('pages',intval($num_flights/$flights_per_page)+1);	
+	$xoopsTpl->assign('pages',intval(($num_flights-0.1)/$flights_per_page)+1);	
 	$xoopsTpl->assign('page',$page);
 	
 	$i=0;
@@ -536,7 +536,18 @@ function show_mpserverstatus()
 	
 	');
 }
-
+///////////////////////////////////////////////////////////////////////
+// SHOW_MPSERVERSTATUSv2 (N/A)
+///////////////////////////////////////////////////////////////////////
+function show_mpserverstatusv2()
+{
+	global $xoopsTpl;
+	$lblock['title']='Mpserver status v2';
+	$lblock['content']=file_get_contents('https://fgtracker.ml/mpserverstatus2/index-table.php');
+		
+	$lblock['content'].='Note: "Not tracked" means that mpserver does not tracked by this server, but it may be tracked by other fgtracker. Detailed report can be viewed <a href="../../mpserverstatus2/">here</a>';
+	$xoopsTpl->append('xoops_lblocks', $lblock);
+}
 ///////////////////////////////////////////////////////////////////////
 // SHOW_PLANE (JSON_DB)
 ///////////////////////////////////////////////////////////////////////

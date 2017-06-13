@@ -33,7 +33,7 @@ if ($conn ===FALSE)
 	return;
 }
 
-$res=pg_query($conn1,"SET application_name = 'FGTracker interface';");
+$res=pg_query($conn,"SET application_name = 'FGTracker interface';");
 setup_client();
 
 /*start*/
@@ -58,6 +58,9 @@ switch ($action)
 		$usercomments=@trim($_GET['usercomments']);
 		$reply=delflight($conn,$reply,$flightid,$token,$username,$callsign,$usercomments);
 		$reply["header"]=Array("code"=>200,"msg"=>'OK');
+	break;
+	case "fgmsstatus":
+		$reply=fgmsstatus($conn,$reply);
 	break;
 	case "flights":
 		$callsign=@trim($_GET['callsign']);
@@ -179,7 +182,7 @@ function airport($conn,$reply,$icao)
 function addheader($reply,$time_start,$client)
 {	
 	$time_end = microtime(true);
-	date_default_timezone_set($client['timezone_abbr']);
+	date_default_timezone_set($client['timezone']);
 	$reply["header"]["request_time"]=date("Y-m-d H:i:sO",$_SERVER['REQUEST_TIME']);
 	$reply["header"]["request_time_raw"]=$_SERVER['REQUEST_TIME'];
 	$reply["header"]["process_time"]=$time_end-$time_start;
@@ -210,7 +213,7 @@ function alterlog($conn,$reply,$callsign)
 	$nr=pg_num_rows ( $res );
 	if($nr==0)
 	{
-		$reply["header"]=Array("code"=>404,"msg"=>"Callsign $flightid not found");
+		$reply["header"]=Array("code"=>404,"msg"=>"Callsign $callsign_escaped not found");
 		return $reply;
 	}
 	for ($i=0;$i<$nr;$i++)
@@ -227,6 +230,29 @@ function alterlog($conn,$reply,$callsign)
 		$log_array=Array("flight_id"=>pg_result($res,$i,'flight_id'),"operating_user"=>$username, "action"=>pg_result($res,$i,'action'),"time"=>pg_result($res,$i,'when_tunc'),"comments"=>pg_result($res,$i,'usercomments'));
 		$reply["data"]['log'][]=$log_array;
 	}
+	
+	/*header*/
+	$reply["header"]=Array("code"=>200,"msg"=>'OK');
+	return $reply;
+}
+
+function fgmsstatus($conn,$reply)
+{
+	$res=pg_query($conn,"SELECT name,ip,key,maintainer,location,date_trunc('second', last_comm) AS last_comm,EXTRACT(EPOCH FROM last_comm)::int AS last_comm_raw,enabled, (select count(*) from flights where server=name AND status='OPEN' and NOW()-start_time < INTERVAL '2 DAY') AS tracking_count FROM fgms_servers order BY name");
+	if ($res===false)
+	{
+		$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error');
+		return $reply;
+	}
+	$nr=pg_num_rows($res);
+	for ($i=0;$i<$nr;$i++)
+	{
+		if (pg_result($res,$i,'enabled')=='t')
+			$enabled=true;
+		else $enabled=false;
+		$reply["data"][]=Array("name"=>pg_result($res,$i,'name'), "domain"=>pg_result($res,$i,'ip'), "protocol_ver"=>pg_result($res,$i,'key'), "maintainer"=>pg_result($res,$i,'maintainer'), "location"=>pg_result($res,$i,'location'), "tracking_count"=>intval(pg_result($res,$i,'tracking_count')), "last_seen"=>pg_result($res,$i,'last_comm'), "last_seen_raw"=>intval(pg_result($res,$i,'last_comm_raw')), "enabled"=>$enabled);
+	}
+	pg_free_result($res);
 	
 	/*header*/
 	$reply["header"]=Array("code"=>200,"msg"=>'OK');
@@ -752,7 +778,7 @@ function livewaypoints($conn,$reply)
 		$flight_array[$callsign][6]=TRUE;
 		$GML_distance=GML_distance($lat, $lon, $flight_array[$callsign][0], $flight_array[$callsign][1]);
 		
-		$wpt=Array("id"=>$id,"flight_id"=>$flight_id,"callsign"=>$callsign,"model"=>$model,"model_raw"=>$model_raw,"time"=>$flight_array[$callsign][4],"time_raw"=>$flight_array[$callsign][5],"lat"=>$flight_array[$callsign][0],"lon"=>$flight_array[$callsign][1],"alt"=>$flight_array[$callsign][2],"hdg"=>$hdg,"speed_kts"=>$GML_distance[0]/($flight_array[$callsign][5]-$time_raw)*3600,"current_status"=>$flight_array[$callsign][3]);
+		$wpt=Array("flight_id"=>$flight_id,"callsign"=>$callsign,"model"=>$model,"model_raw"=>$model_raw,"time"=>$flight_array[$callsign][4],"time_raw"=>$flight_array[$callsign][5],"lat"=>$flight_array[$callsign][0],"lon"=>$flight_array[$callsign][1],"alt"=>$flight_array[$callsign][2],"hdg"=>$hdg,"speed_kts"=>$GML_distance[0]/($flight_array[$callsign][5]-$time_raw)*3600,"current_status"=>$flight_array[$callsign][3]);
 		$reply["data"]['wpt'][]=$wpt;
 	}
 

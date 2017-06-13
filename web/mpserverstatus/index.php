@@ -111,7 +111,7 @@ $HEAD .= date("y-m-d G:i:s").'<br />
 			</td>
 		</tr>';
 
-$FOOT .= <<<FOOT
+$FOOT = <<<FOOT
 	</table>
 </body>
 </html>

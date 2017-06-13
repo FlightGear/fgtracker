@@ -94,7 +94,7 @@ $lclients = substr_count($raw, "@LOCAL: ") - $uclients;
 if(isset($tracker)) {
 	if (in_array($tracker,$tracker_ip))
 	{
-		if ($mpserver_list[$short]["force_untracked"]===true or $firewall_okay===false)
+		if ($mpserver_list[$short]["force_untracked"]===true)
 			$tracked = "No";
 		else
 		{

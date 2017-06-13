@@ -69,6 +69,7 @@ switch ($funct)
 		ten_open_closed_flight();
 		show_tracking_pilots();
 		show_mpserverstatus();
+		show_mpserverstatusv2();
 		include_once XOOPS_ROOT_PATH."/footer.php";
 		break;
 	case "FLIGHTS":

@@ -48,9 +48,6 @@ class UpdateMgr
 		pg_free_result($res);
 		
 		/*create $temptable_waypoints index*/
-		$sql="CREATE UNIQUE INDEX \"$temptable_waypoints-id_idx\" ON $temptable_waypoints (id);";
-		$res=$this->fgt_pg_query_params($sql,NULL);
-		if($res===false) return false; /*should be obsolate soon*/
 		$sql="CREATE INDEX \"$temptable_waypoints-flightidtime_idx\" ON $temptable_waypoints (flight_id,time);";
 		$res=$this->fgt_pg_query_params($sql,NULL);
 		if($res===false) return false;
@@ -213,20 +210,20 @@ class UpdateMgr
 		$message="Fixing no orphan waypoints and no waypoint flights";
 		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 		
-		/* FIX ME: expensive performance hit
-		$sql="delete from waypoints where flight_id is null or flight_id not in (select id from flights)";
+		/* FIX ME: expensive performance hit. Fixed on 2017.05.04*/
+		$sql="delete from waypoints where flight_id is null or flight_id not in (select distinct id from flights)";
 		$res=$this->fgt_pg_query_params($sql,NULL);
 		if($res===false)
 			return;
-		$message=pg_affected_rows($res)." waypoints removed";*/
-		$message="Orphan waypoints fixing is disabled in this version";
+		$message=pg_affected_rows($res)." orphan waypoints removed";
+		//$message="Orphan waypoints fixing is disabled in this version";
 		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 		
 		$sql="delete from flights where id not in (select distinct flight_id from waypoints) and status = 'CLOSED' and start_time < $1";
 		$res=$this->fgt_pg_query_params($sql,Array($var['archive_date']));
 		if($res===false)
 			return;
-		$message=pg_affected_rows($res)." flights removed";
+		$message=pg_affected_rows($res)." no waypoint flights removed";
 		$fgt_error_report->fgt_set_error_report($sub_pid,$message,E_WARNING);
 	}
 	
