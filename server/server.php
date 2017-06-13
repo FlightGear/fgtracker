@@ -1,6 +1,6 @@
 <?php
 /*
-FGTracker server Version 2.3a1
+FGTracker server Version 2.4a1
 
 Author								: Hazuki Amamiya <FlightGear forum nick Hazuki>
 License								: GPL Version 3
@@ -21,7 +21,7 @@ require("fgt_error_report.php");
 $fgt_error_report=new fgt_error_report();
 
 $var['os'] = strtoupper(PHP_OS);
-$var['fgt_ver']="2.3a1";
+$var['fgt_ver']="2.4a1";
 $var['min_php_ver']='5.1';
 $var['min_postgres_ver']='9.5';
 $var['exitflag']=false;

@@ -113,6 +113,17 @@ class fgt_ident
 
 		$message="Client from $address identified as $serv_ident via protocal version $protocal_version";
 		$fgt_error_report->fgt_set_error_report("IDENT",$message,E_NOTICE);
+		$sql_parm=Array($data[1],$protocal_version,$serv_ident);
+		$sql="UPDATE fgms_servers SET reported_ver=$1 where key=$2 and name=$3;";
+		$res=pg_query_params($fgt_sql->conn,$sql,$sql_parm);
+		if ($res===false)
+		{
+			$fgt_error_report->fgt_set_error_report("IDENT",$dbfailmessage,E_ERROR);
+			$clients[$uuid]['connected']=false;
+			$fgt_sql->connected=false;
+			return false;
+		}
+				
 		$clients[$uuid]['identified']=true;
 		$clients[$uuid]['protocal_version']=$protocal_version;
 		if ($protocal_version=="NOWAIT")

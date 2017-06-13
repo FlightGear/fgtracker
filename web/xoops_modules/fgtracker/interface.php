@@ -238,7 +238,7 @@ function alterlog($conn,$reply,$callsign)
 
 function fgmsstatus($conn,$reply)
 {
-	$res=pg_query($conn,"SELECT name,ip,key,maintainer,location,date_trunc('second', last_comm) AS last_comm,EXTRACT(EPOCH FROM last_comm)::int AS last_comm_raw,enabled, (select count(*) from flights where server=name AND status='OPEN' and NOW()-start_time < INTERVAL '2 DAY') AS tracking_count FROM fgms_servers order BY name");
+	$res=pg_query($conn,"SELECT name,ip,key,reported_ver,maintainer,location,date_trunc('second', last_comm) AS last_comm,EXTRACT(EPOCH FROM last_comm)::int AS last_comm_raw,enabled, (select count(*) from flights where server=name AND status='OPEN' and NOW()-start_time < INTERVAL '2 DAY') AS tracking_count FROM fgms_servers order BY name");
 	if ($res===false)
 	{
 		$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error');
@@ -250,7 +250,7 @@ function fgmsstatus($conn,$reply)
 		if (pg_result($res,$i,'enabled')=='t')
 			$enabled=true;
 		else $enabled=false;
-		$reply["data"][]=Array("name"=>pg_result($res,$i,'name'), "domain"=>pg_result($res,$i,'ip'), "protocol_ver"=>pg_result($res,$i,'key'), "maintainer"=>pg_result($res,$i,'maintainer'), "location"=>pg_result($res,$i,'location'), "tracking_count"=>intval(pg_result($res,$i,'tracking_count')), "last_seen"=>pg_result($res,$i,'last_comm'), "last_seen_raw"=>intval(pg_result($res,$i,'last_comm_raw')), "enabled"=>$enabled);
+		$reply["data"][]=Array("name"=>pg_result($res,$i,'name'), "domain"=>pg_result($res,$i,'ip'), "protocol_ver"=>pg_result($res,$i,'key'), "ver"=>pg_result($res,$i,'reported_ver'), "maintainer"=>pg_result($res,$i,'maintainer'), "location"=>pg_result($res,$i,'location'), "tracking_count"=>intval(pg_result($res,$i,'tracking_count')), "last_seen"=>pg_result($res,$i,'last_comm'), "last_seen_raw"=>intval(pg_result($res,$i,'last_comm_raw')), "enabled"=>$enabled);
 	}
 	pg_free_result($res);
 	

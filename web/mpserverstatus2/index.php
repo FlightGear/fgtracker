@@ -25,6 +25,7 @@
 			<td class="clearbox">Server Address</td>
 			<td class="clearbox">Location</td>
 			<td class="clearbox">Required Version</td>
+			<td class="clearbox">Reported Version</td>
 			<td class="clearbox">Tracked</td>
 			<td class="clearbox">Total Tracking Clients</td>
 			<td class="clearbox">Last seen</td>
@@ -36,6 +37,7 @@ foreach ($res["data"] as $fgms)
 	$f_name=$fgms['name'];
 	$f_domain=$fgms['domain'];
 	$f_protocol=$fgms['protocol_ver'];
+	$f_ver=$fgms['ver'];
 	$f_maintainer=$fgms['maintainer'];
 	$f_location=$fgms['location'];
 	$f_last_seen=$fgms['last_seen'];
@@ -70,6 +72,7 @@ foreach ($res["data"] as $fgms)
 			<td>$f_domain</td>
 			<td>$f_location</td>
 			<td>$f_protocol</td>
+			<td>$f_ver</td>
 			<td>$tracked</td>
 			<td>$tracking_count</td>
 			<td>$f_last_seen</td>
