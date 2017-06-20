@@ -9,4 +9,4 @@ FGTracker consists of three modules:
 
 See individual README file in the modules for more information.
 
-Current Version: V2.2beta
+Current Version: V2.4beta

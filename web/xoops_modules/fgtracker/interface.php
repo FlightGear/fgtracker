@@ -238,7 +238,7 @@ function alterlog($conn,$reply,$callsign)
 
 function fgmsstatus($conn,$reply)
 {
-	$res=pg_query($conn,"SELECT name,ip,key,reported_ver,maintainer,location,date_trunc('second', last_comm) AS last_comm,EXTRACT(EPOCH FROM last_comm)::int AS last_comm_raw,enabled, (select count(*) from flights where server=name AND status='OPEN' and NOW()-start_time < INTERVAL '2 DAY') AS tracking_count FROM fgms_servers order BY name");
+	$res=pg_query($conn,"SELECT name,ip,key,reported_ver,maintainer,location,date_trunc('second', last_comm) AS last_comm,EXTRACT(EPOCH FROM last_comm)::int AS last_comm_raw,enabled, (select count(*) from flights where server=name AND status='OPEN' and NOW()-start_time < INTERVAL '2 DAY') AS tracking_count FROM fgms_servers where enabled is true order BY name");
 	if ($res===false)
 	{
 		$reply["header"]=Array("code"=>500,"msg"=>'Internal Server Error');

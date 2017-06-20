@@ -4,7 +4,8 @@ FGTracker Web
 -xoops_modules/fgplanner: FGPlanner (XOOPS modules)
 -xoops_modules/fgtracker: FGTracker (XOOPS modules)
 -xoops_modules/fgtracker/interface.php: FGTracker API
--mpserverstatus: Multiplayer server status page
+-mpserverstatus: Multiplayer server status page, telnet based
+-mpserverstatus2: Multiplayer server status page, tracker based
 -maps: Useful map(s) which gets data from FGTracker
 
 2. Database parameters
