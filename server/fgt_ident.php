@@ -14,10 +14,6 @@ class fgt_ident
 
 		$protocal_version="Unknown";
 		
-		/*check if whole message received*/
-		$slash_n_pos = strpos($clients[$uuid]['read_buffer'], "\0");
-		if($slash_n_pos===false)
-			return false;
 		/*read line*/
 		$lines=explode("\0", $clients[$uuid]['read_buffer'],2);
 		$line=$lines[0];
