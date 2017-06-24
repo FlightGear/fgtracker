@@ -12,6 +12,8 @@ class fgt_ident
 	{	/*return false if client is not (yet) identified; true if identified*/
 		global $fgt_error_report,$var,$clients,$fgt_sql;
 
+		$protocal_version="Unknown";
+		
 		/*check if whole message received*/
 		$slash_n_pos = strpos($clients[$uuid]['read_buffer'], "\0");
 		if($slash_n_pos===false)
@@ -44,7 +46,7 @@ class fgt_ident
 		{
 			/*could not be identified*/
 			$fgt_error_report->fgt_set_error_report("IDENT",$identfailmsg."Unknown/Unsupported protocal version",E_NOTICE);
-			$clients[$uuid]['socket']=false;
+			$clients[$uuid]['connected']=false;
 			return false;
 		}
 		/*check the identity*/
